@@ -3,7 +3,11 @@
 #include <gtkmm/button.h>
 #include <gtkmm/separator.h>
 
+#include "core/Library.hpp"
 #include "core/Mods.hpp"
+#include "core/Player.hpp"
+#include "ui/Dialogs.hpp"
+#include "util/Log.hpp"
 #include "i18n/I18n.hpp"
 #include "ui/Nav.hpp"
 
@@ -18,6 +22,7 @@ MainMenuButton::MainMenuButton() {
     popover_.add_css_class("context-menu");
     popover_.set_has_arrow(false);
     set_popover(popover_);
+    autohide_on_leave(popover_);
     // rebuilt every time it opens.
     popover_.signal_show().connect(sigc::mem_fun(*this, &MainMenuButton::rebuild));
     rebuild();
@@ -85,6 +90,38 @@ void append_mod_items(std::vector<MenuItem>& items, uint32_t place, uint64_t tar
         items.push_back(std::move(it));
         first = false;
     }
+}
+
+}  // namespace dp::ui
+
+namespace dp::ui {
+
+void add_to_playlist(Gtk::Window& parent, const std::vector<int64_t>& ids) {
+    pick_playlist(parent, tr("action.add_to_title"), [ids](const std::string& name) {
+        const auto* p = Library::get().playlist(name);
+        std::vector<int64_t> v = p ? p->tracks : std::vector<int64_t>{};
+        v.insert(v.end(), ids.begin(), ids.end());
+        if (Library::get().save_playlist(name, v, p ? p->cover : "") == 0)
+            Log::get().ok("ui", tr("action.added_to", {name}));
+    });
+}
+
+void append_song_items(std::vector<MenuItem>& items, Gtk::Widget& anchor, int64_t id) {
+    Gtk::Window* win = window_of(anchor);
+    items.push_back({tr("action.play_next"), [id] { Player::get().play_next({id, {}}); }});
+    items.push_back({tr("action.open_song"), [id] { nav().open_song(id); }});
+    items.push_back({tr("action.add_to"), [win, id] {
+                         if (win) add_to_playlist(*win, {id});
+                     }});
+    items.push_back({tr("action.export_song"), [id] { nav().open_export_tracks({id}); }});
+    append_mod_items(items, UI_PLACE_SONG, static_cast<uint64_t>(id));
+}
+
+void append_queue_items(std::vector<MenuItem>& items, std::function<std::vector<int64_t>()> ids,
+                        const std::string& name) {
+    items.push_back({tr("action.queue_next"),
+                     [ids, name] { Player::get().enqueue(ids(), Player::Where::AfterCurrent, name); }, {}, true});
+    items.push_back({tr("action.queue_end"), [ids, name] { Player::get().enqueue(ids(), Player::Where::AtEnd, name); }});
 }
 
 }  // namespace dp::ui

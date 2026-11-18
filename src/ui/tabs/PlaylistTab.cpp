@@ -1,25 +1,25 @@
 #include "ui/tabs/PlaylistTab.hpp"
 
+#include <gtkmm/adjustment.h>
 #include <gtkmm/button.h>
+#include <gtkmm/menubutton.h>
 
 #include <algorithm>
 
-#include "core/Covers.hpp"
 #include "core/Library.hpp"
 #include "core/Player.hpp"
 #include "i18n/I18n.hpp"
 #include "ui/Menus.hpp"
 #include "ui/Nav.hpp"
+#include "ui/widgets/Dnd.hpp"
 #include "ui/widgets/TrackRow.hpp"
 #include "util/Format.hpp"
 
 namespace dp::ui {
 
 std::string PlaylistTab::title() const { return name_.empty() ? tr("playlists.all_songs") : name_; }
-std::string PlaylistTab::queue_name() const { return title(); }
 
 PlaylistTab::PlaylistTab(std::string name) : name_(std::move(name)) {
-    // header: cover, name, stats, actions.
     auto* head = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 18);
     head->add_css_class("page-header");
     head->append(cover_);
@@ -39,7 +39,7 @@ PlaylistTab::PlaylistTab(std::string name) : name_(std::move(name)) {
     play->add_css_class("suggested-action");
     play->signal_clicked().connect([this] {
         Player::get().set_shuffle(false);
-        Player::get().play_ids(queue_name(), ids(), 0);
+        Player::get().play_ids(title(), ids(), 0);
     });
     actions->append(*play);
     auto* shuffle = Gtk::make_managed<Gtk::Button>(tr("action.shuffle_play"));
@@ -47,9 +47,18 @@ PlaylistTab::PlaylistTab(std::string name) : name_(std::move(name)) {
         const auto v = ids();
         if (v.empty()) return;
         Player::get().set_shuffle(true);
-        Player::get().play_ids(queue_name(), v, static_cast<size_t>(g_random_int_range(0, static_cast<int>(v.size()))));
+        Player::get().play_ids(title(), v, static_cast<size_t>(g_random_int_range(0, static_cast<int>(v.size()))));
     });
     actions->append(*shuffle);
+    auto* queue = Gtk::make_managed<Gtk::Button>(tr("action.to_queue"));
+    queue->set_tooltip_text(tr("action.to_queue_hint"));
+    queue->signal_clicked().connect([this, queue] {
+        std::vector<MenuItem> items;
+        append_queue_items(items, [this] { return ids(); }, title());
+        items.front().separator = false;
+        show_menu(*queue, 0, queue->get_height(), items);
+    });
+    actions->append(*queue);
     if (!name_.empty()) {
         auto* edit = Gtk::make_managed<Gtk::Button>(tr("action.edit"));
         edit->signal_clicked().connect([this] { nav().open_editor(name_); });
@@ -72,7 +81,7 @@ PlaylistTab::PlaylistTab(std::string name) : name_(std::move(name)) {
     list_.set_selection_mode(Gtk::SelectionMode::NONE);
     list_.signal_row_activated().connect([this](Gtk::ListBoxRow* row) {
         if (auto* r = dynamic_cast<TrackRow*>(row))
-            Player::get().play_ids(queue_name(), ids(), static_cast<size_t>(r->number() - 1));
+            Player::get().play_ids(title(), ids(), static_cast<size_t>(r->number() - 1));
     });
     list_.set_filter_func([this](Gtk::ListBoxRow* row) {
         auto* r = dynamic_cast<TrackRow*>(row);
@@ -84,7 +93,6 @@ PlaylistTab::PlaylistTab(std::string name) : name_(std::move(name)) {
     append(scroll_);
 
     Library::get().signal_changed().connect(sigc::mem_fun(*this, &PlaylistTab::rebuild));
-    Player::get().signal_track_changed().connect(sigc::mem_fun(*this, &PlaylistTab::mark_playing));
     rebuild();
 }
 
@@ -98,6 +106,19 @@ std::vector<int64_t> PlaylistTab::ids() const {
     return p ? p->tracks : std::vector<int64_t>{};
 }
 
+void PlaylistTab::move_track(size_t from, size_t to) {
+    const auto* p = Library::get().playlist(name_);
+    if (!p || from >= p->tracks.size() || to > p->tracks.size() || from == to) return;
+    auto v = p->tracks;
+    const int64_t id = v[from];
+    v.erase(v.begin() + static_cast<long>(from));
+    if (to > from) --to;
+    v.insert(v.begin() + static_cast<long>(to), id);
+    const std::string cover = p->cover;
+    // after the drop finishes: saving rebuilds the rows being dragged.
+    defer([this, v, cover] { Library::get().save_playlist(name_, v, cover); });
+}
+
 void PlaylistTab::rebuild() {
     auto& lib = Library::get();
     if (!name_.empty() && !lib.playlist(name_)) {
@@ -108,8 +129,10 @@ void PlaylistTab::rebuild() {
     const auto v = ids();
     title_.set_text(title());
     stats_.set_text(tr("playlists.stats", {std::to_string(v.size()), fmt::duration(lib.total_duration(v))}));
-    if (!name_.empty()) cover_.set(Covers::get().file(lib.playlist(name_)->cover));
+    // no own cover — the first song's.
+    cover_.set_file_async(name_.empty() ? "" : lib.playlist(name_)->cover, v.empty() ? 0 : v.front());
 
+    const double scroll = scroll_.get_vadjustment()->get_value();
     while (auto* child = list_.get_first_child()) list_.remove(*child);
     int n = 0;
     for (int64_t id : v) {
@@ -118,26 +141,38 @@ void PlaylistTab::rebuild() {
         if (!t) continue;
         auto* row = Gtk::make_managed<TrackRow>(*t, n);
         const size_t index = static_cast<size_t>(n - 1);
-        on_context_menu(*row, [this, id, index] { return track_menu(id, index); });
+        on_context_menu(*row, [this, row, id, index] { return track_menu(*row, id, index); });
+        if (!name_.empty()) {
+            // reorder by dragging; songs of other lists can be dropped in too.
+            drag_source(*row, [index] { return "row:" + std::to_string(index); });
+            drop_on_row(*row, [this, index](const std::string& payload, bool after) {
+                const size_t to = index + (after ? 1 : 0);
+                if (long from = payload_num(payload, "row:"); from >= 0) {
+                    move_track(static_cast<size_t>(from), to);
+                    return true;
+                }
+                if (long id = payload_num(payload, "track:"); id > 0) {
+                    const auto* p = Library::get().playlist(name_);
+                    if (!p) return false;
+                    auto v2 = p->tracks;
+                    v2.insert(v2.begin() + static_cast<long>(std::min(to, v2.size())), id);
+                    const std::string cover = p->cover;
+                    defer([this, v2, cover] { Library::get().save_playlist(name_, v2, cover); });
+                    return true;
+                }
+                return false;
+            });
+        }
         list_.append(*row);
     }
-    mark_playing();
+    // keep the scroll position across rebuilds (e.g. after a reorder).
+    defer([this, scroll] { scroll_.get_vadjustment()->set_value(scroll); });
 }
 
-void PlaylistTab::mark_playing() {
-    const auto& p = Player::get();
-    const auto cur = p.current();
-    const bool ours = p.state().has_track && p.queue_name() == queue_name();
-    for (auto* w = list_.get_first_child(); w; w = w->get_next_sibling())
-        if (auto* r = dynamic_cast<TrackRow*>(w)) r->set_playing(ours && cur && cur->id == r->track_id());
-}
-
-std::vector<MenuItem> PlaylistTab::track_menu(int64_t id, size_t index) {
+std::vector<MenuItem> PlaylistTab::track_menu(Gtk::Widget& row, int64_t id, size_t index) {
     std::vector<MenuItem> items;
-    items.push_back({tr("action.play"), [this, index] { Player::get().play_ids(queue_name(), ids(), index); }});
-    items.push_back({tr("action.play_next"), [id] { Player::get().play_next({id, {}}); }});
-    items.push_back({tr("action.open_song"), [id] { nav().open_song(id); }});
-    items.push_back({tr("action.export_song"), [id] { nav().open_export_tracks({id}); }});
+    items.push_back({tr("action.play"), [this, index] { Player::get().play_ids(title(), ids(), index); }});
+    append_song_items(items, row, id);
     if (!name_.empty()) {
         items.push_back({tr("action.remove_from_playlist"),
                          [this, index] {
@@ -149,22 +184,6 @@ std::vector<MenuItem> PlaylistTab::track_menu(int64_t id, size_t index) {
                          },
                          "destructive", true});
     }
-    // add to another playlist.
-    for (const auto& pl : Library::get().playlists()) {
-        if (pl.name == name_) continue;
-        const std::string target = pl.name;
-        items.push_back({tr("action.add_to", {target}),
-                         [id, target] {
-                             const auto* p = Library::get().playlist(target);
-                             if (!p) return;
-                             auto v = p->tracks;
-                             v.push_back(id);
-                             Library::get().save_playlist(target, v, p->cover);
-                         },
-                         {}, &pl == &Library::get().playlists().front()});
-        if (items.size() > 16) break;
-    }
-    append_mod_items(items, UI_PLACE_SONG, static_cast<uint64_t>(id));
     return items;
 }
 

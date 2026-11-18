@@ -9,6 +9,9 @@ app_id = 'dev.dreamplayer.gtk'
 gtkmm = dependency('gtkmm-4.0', version : '>= 4.10')
 giomm = dependency('giomm-2.68')
 threads = dependency('threads')
+pixbuf = dependency('gdk-pixbuf-2.0')
+fontconfig = dependency('fontconfig')
+pangoft = dependency('pangoft2')
 
 # ─── the core (rs_dream_player) ───────────────────────────────────────────────
 # built by cargo as a cdylib with the mod system enabled; the C ABI is
@@ -68,6 +71,11 @@ sources = files(
   'src/ui/MainWindow.cpp',
   'src/ui/TabHost.cpp',
   'src/ui/Menus.cpp',
+  'src/ui/Hotkeys.cpp',
+  'src/ui/Dialogs.cpp',
+  'src/ui/tabs/QueueTab.cpp',
+  'src/ui/widgets/Dnd.cpp',
+  'src/ui/widgets/VolumeZone.cpp',
   'src/ui/widgets/WaveView.cpp',
   'src/ui/widgets/SeekBar.cpp',
   'src/ui/widgets/PlayerPanel.cpp',
@@ -90,7 +98,7 @@ sources = files(
 
 executable('dream_player_gtk', sources, core_lib,
   include_directories : include_directories('src', '.'),
-  dependencies : [gtkmm, giomm, threads],
+  dependencies : [gtkmm, giomm, pixbuf, fontconfig, pangoft, threads],
   link_with : core_lib,
   build_rpath : meson.project_build_root(),
   install_rpath : get_option('prefix') / get_option('libdir'),
@@ -98,6 +106,7 @@ executable('dream_player_gtk', sources, core_lib,
 
 install_subdir('data/lang', install_dir : datadir)
 install_subdir('data/themes', install_dir : datadir)
+install_subdir('data/fonts', install_dir : datadir)
 install_data('data/LICENSE-app.txt', 'data/LICENSE-core.txt', install_dir : datadir)
 install_data('data/dev.dreamplayer.gtk.desktop',
   install_dir : get_option('datadir') / 'applications')

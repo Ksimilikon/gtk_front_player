@@ -19,6 +19,10 @@ TrackRow::TrackRow(const core::Track& t, int number, bool show_album) : id_(t.id
     num_.set_visible(number > 0);  // unnumbered lists (the library in the editor)
     box_.append(num_);
 
+    auto* cover = Gtk::make_managed<CoverView>(38);
+    cover->set_track_async(t.id);
+    box_.append(*cover);
+
     if (!t.color.empty()) {
         auto* dot = Gtk::make_managed<Gtk::DrawingArea>();
         dot->set_content_width(10);
@@ -27,7 +31,7 @@ TrackRow::TrackRow(const core::Track& t, int number, bool show_album) : id_(t.id
         Gdk::RGBA rgba;
         if (!rgba.set(t.color)) rgba.set("#888888");
         dot->set_draw_func([rgba](const Cairo::RefPtr<Cairo::Context>& cr, int w, int h) {
-            cr->arc(w / 2.0, h / 2.0, std::min(w, h) / 2.0, 0, 2 * M_PI);
+            cr->rectangle(0, 0, w, h);  // square, like everything else
             cr->set_source_rgba(rgba.get_red(), rgba.get_green(), rgba.get_blue(), 1.0);
             cr->fill();
         });

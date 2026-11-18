@@ -6,12 +6,12 @@
 
 namespace dp::paths {
 
-static constexpr const char* kAppDir = "dream_player_gtk";
+static constexpr const char* kAppDir = "dream_player";  // the TUI's directory
 
-fs::path config_dir() { return fs::path(g_get_user_config_dir()) / kAppDir; }
-fs::path data_dir() { return fs::path(g_get_user_data_dir()) / kAppDir; }
+fs::path app_dir() { return fs::path(g_get_user_config_dir()) / kAppDir; }
+fs::path mods_dir() { return app_dir() / "mods"; }
+fs::path settings_file() { return app_dir() / "gtk.conf"; }
 fs::path cache_dir() { return fs::path(g_get_user_cache_dir()) / kAppDir; }
-fs::path mods_dir() { return data_dir() / "mods"; }
 
 fs::path default_music_dir() {
     if (const char* m = g_get_user_special_dir(G_USER_DIRECTORY_MUSIC)) return m;
@@ -27,7 +27,13 @@ fs::path resource_dir() {
 
 void ensure_dirs() {
     std::error_code ec;
-    for (const auto& d : {config_dir(), data_dir(), cache_dir(), mods_dir()}) fs::create_directories(d, ec);
+    for (const auto& d : {app_dir(), mods_dir(), cache_dir()}) fs::create_directories(d, ec);
+    // the first layout of this frontend kept its own directories.
+    const fs::path old_settings = fs::path(g_get_user_config_dir()) / "dream_player_gtk" / "settings.conf";
+    if (fs::exists(old_settings, ec) && !fs::exists(settings_file(), ec)) fs::copy_file(old_settings, settings_file(), ec);
+    const fs::path old_mods = fs::path(g_get_user_data_dir()) / "dream_player_gtk" / "mods";
+    for (const auto& e : fs::directory_iterator(old_mods, ec))
+        if (!fs::exists(mods_dir() / e.path().filename(), ec)) fs::copy(e.path(), mods_dir() / e.path().filename(), ec);
 }
 
 fs::path unique_path(const fs::path& dir, const std::string& name) {

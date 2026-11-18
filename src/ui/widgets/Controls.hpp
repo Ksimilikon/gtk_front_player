@@ -18,7 +18,6 @@ private:
     Gtk::ToggleButton shuffle_, repeat_;
     Gtk::Button prev_, play_, next_;
     Gtk::Button volume_icon_;
-    Gtk::Scale volume_{Gtk::Orientation::HORIZONTAL};
     bool updating_ = false;
     double muted_from_ = 1.0;
 };

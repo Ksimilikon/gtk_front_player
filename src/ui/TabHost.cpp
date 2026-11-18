@@ -2,11 +2,13 @@
 
 #include <gtkmm/button.h>
 #include <gtkmm/gestureclick.h>
+#include <gtkmm/adjustment.h>
 #include <gtkmm/label.h>
 
 #include <algorithm>
 
 #include "i18n/I18n.hpp"
+#include "ui/Dialogs.hpp"
 #include "ui/Nav.hpp"
 
 namespace dp::ui {
@@ -104,6 +106,54 @@ void TabHost::focus(const std::string& key) {
 Tab* TabHost::current() const { return dynamic_cast<Tab*>(const_cast<Gtk::Stack&>(stack_).get_visible_child()); }
 
 void TabHost::close(const std::string& key) {
+    Tab* t = find(key);
+    if (!t || !t->closable()) return;
+    if (!t->has_unsaved()) return close_now(key);
+    focus(key);
+    auto* w = dynamic_cast<Gtk::Window*>(get_root());
+    if (!w) return;
+    ask_unsaved(
+        *w, t->title(),
+        [this, key] {
+            if (Tab* tab = find(key); tab && tab->save_changes()) close_now(key);
+        },
+        [this, key] {
+            if (Tab* tab = find(key)) tab->discard_changes();
+            close_now(key);
+        });
+}
+
+void TabHost::resolve_unsaved(std::function<void()> then) {
+    for (auto& e : tabs_) {
+        if (!e.page->has_unsaved()) continue;
+        const std::string key = e.page->key();
+        focus(key);
+        auto* w = dynamic_cast<Gtk::Window*>(get_root());
+        if (!w) return;
+        ask_unsaved(
+            *w, e.page->title(),
+            [this, key, then] {
+                if (Tab* tab = find(key); tab && tab->save_changes()) resolve_unsaved(then);
+            },
+            [this, key, then] {
+                if (Tab* tab = find(key)) tab->discard_changes();
+                resolve_unsaved(then);
+            });
+        return;
+    }
+    then();
+}
+
+void TabHost::reset_scroll(Gtk::Widget& w) {
+    if (auto* sw = dynamic_cast<Gtk::ScrolledWindow*>(&w)) {
+        sw->get_vadjustment()->set_value(0);
+        sw->get_hadjustment()->set_value(0);
+    }
+    for (auto* c = w.get_first_child(); c; c = c->get_next_sibling()) reset_scroll(*c);
+}
+
+void TabHost::close_now(const std::string& key) {
+    if (Tab* t = find(key); t && t->closable()) t->on_closed();
     const auto it = std::find_if(tabs_.begin(), tabs_.end(), [&](const Entry& e) { return e.page->key() == key; });
     if (it == tabs_.end() || !it->page->closable()) return;
     const bool was_current = current() == it->page.get();

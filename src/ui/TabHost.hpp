@@ -24,7 +24,15 @@ public:
     Tab* open(const std::string& key, const std::function<std::unique_ptr<Tab>()>& make);
     Tab* find(const std::string& key) const;
     void focus(const std::string& key);
+    /// closes a tab; with unsaved changes asks save / don't save / cancel.
     void close(const std::string& key);
+    /// closes without asking.
+    void close_now(const std::string& key);
+    /// asks about every tab with unsaved changes; `then()` once none is left
+    /// (not called if the user cancels).
+    void resolve_unsaved(std::function<void()> then);
+    /// scrolls every scrolled area of the tab to the top / left.
+    static void reset_scroll(Gtk::Widget& w);
     void close_current();
     void cycle(int dir);
     Tab* current() const;

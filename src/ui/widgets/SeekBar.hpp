@@ -23,7 +23,7 @@ private:
     void animate_to(double thickness);
     double fraction_at(double x) const;
 
-    static constexpr double kThin = 3, kThick = 9;
+    static constexpr double kThin = 1.5, kThick = 4;
     double fraction_ = 0;
     double drag_fraction_ = 0;
     bool dragging_ = false;

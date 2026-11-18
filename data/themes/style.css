@@ -1,8 +1,13 @@
 /* Dream Player stylesheet template. `{{token}}` is replaced with the value of
- * the token from the active `.theme` file (see Theme.hpp). Loaded over the
- * dark variant of the base GTK theme. */
+ * the token from the active `.theme` file (see Theme.hpp) or the user's
+ * palette (Settings → Palette). Loaded over the dark variant of the base GTK
+ * theme.
+ *
+ * Shapes: retro terminal — everything square (no rounded or cut corners),
+ * thin frames, accent edge markers, monospace captions.
+ * Fonts: {{font}} — the UI font, {{mono}} — captions / numbers (Settings →
+ * Font: the bundled pixel font, or the system one). */
 
-/* GTK's default theme reads these variables (accent, window colors). */
 :root {
   --accent-bg-color: {{accent}};
   --accent-fg-color: {{accent_text}};
@@ -18,9 +23,19 @@
   --destructive-color: {{error}};
 }
 
-window, window.background, .background {
+window, window.background {
   background-color: {{bg}};
   color: {{text}};
+}
+
+window, popover, tooltip { font-family: {{font}}; }
+
+/* popovers are drawn by their contents only: no square behind the frame. */
+popover, popover.background, popover.menu, popover.context-menu {
+  background: none;
+  background-color: transparent;
+  box-shadow: none;
+  border: none;
 }
 
 /* ── generic ─────────────────────────────────────────────────────────── */
@@ -28,26 +43,40 @@ label.muted, .muted { color: {{muted}}; }
 .accent { color: {{accent}}; }
 .error-text { color: {{error}}; }
 .ok-text { color: {{accent}}; }
+.mono { font-family: {{mono}}; }
 .section-title {
-  color: {{muted}};
+  color: {{accent}};
+  font-family: {{mono}};
   font-size: 0.8em;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+  border-bottom: 1px dashed alpha({{accent}}, 0.35);
+  padding-bottom: 3px;
 }
-.page-title { font-size: 1.6em; font-weight: 800; }
-.about-title { font-size: 2em; font-weight: 800; color: {{accent}}; margin-top: 8px; }
+.page-title { font-size: 1.6em; font-weight: 800; letter-spacing: 0.5px; }
+.about-title {
+  font-size: 2em;
+  font-weight: 800;
+  font-family: {{mono}};
+  color: {{accent}};
+  letter-spacing: 3px;
+  margin-top: 8px;
+}
 .form-page { padding: 16px 22px; }
 .toolbar { padding: 10px 14px; }
 .card {
   background-color: {{surface}};
   border: 1px solid {{border}};
-  border-radius: 10px;
+  border-left: 2px solid alpha({{accent}}, 0.7);
+  border-radius: 0;
   padding: 10px 12px;
 }
 .setting-row {
   padding: 8px 2px;
-  border-bottom: 1px solid {{border}};
+  border-bottom: 1px dashed {{border}};
 }
+.half-pane { padding-top: 4px; }
+.half-pane + .half-pane { border-left: 1px solid {{border}}; }
 
 selection, text selection, label selection {
   background-color: alpha({{accent}}, 0.35);
@@ -60,35 +89,49 @@ button {
   background-color: {{surface_alt}};
   color: {{text}};
   border: 1px solid {{border}};
-  border-radius: 8px;
+  border-radius: 0;   /* two "cut" corners */
   box-shadow: none;
   min-height: 28px;
   padding: 2px 12px;
 }
-button:hover { background-color: shade({{surface_alt}}, 1.5); }
+button:hover { background-color: shade({{surface_alt}}, 1.5); border-color: alpha({{accent}}, 0.5); }
 button:active, button:checked { background-color: alpha({{accent}}, 0.18); color: {{accent}}; }
 button:disabled { color: alpha({{text}}, 0.35); }
 button.flat { background-color: transparent; border-color: transparent; }
-button.flat:hover { background-color: alpha({{text}}, 0.07); }
+button.flat:hover { background-color: alpha({{text}}, 0.07); border-color: transparent; }
 button.flat:checked { background-color: transparent; color: {{accent}}; }
 button.suggested-action {
   background-color: {{accent}};
   color: {{accent_text}};
   border-color: {{accent}};
   font-weight: 700;
+  letter-spacing: 0.5px;
 }
 button.suggested-action:hover { background-color: shade({{accent}}, 1.1); }
 button.suggested-action:disabled { background-color: alpha({{accent}}, 0.3); color: alpha({{accent_text}}, 0.6); }
-button.destructive-action { color: {{error}}; border-color: alpha({{error}}, 0.4); background-color: transparent; }
+button.destructive-action { color: {{error}}; border-color: alpha({{error}}, 0.5); background-color: transparent; }
 button.destructive-action:hover { background-color: alpha({{error}}, 0.12); }
-button.swatch { padding: 0 6px; min-width: 26px; }
+button.swatch { padding: 0 8px; min-width: 26px; }
 button.swatch:checked { border-color: {{accent}}; background-color: alpha({{accent}}, 0.12); }
+button.chip {
+  border-radius: 0;
+  border-color: alpha({{accent}}, 0.5);
+  color: {{accent}};
+  background-color: transparent;
+  padding: 1px 10px;
+  min-height: 24px;
+}
+button.plus-button { font-size: 1.3em; font-weight: 800; min-width: 34px; padding: 0 8px; }
+button.chip > box { margin: 2px 0; }
+button.accel-button { font-family: {{mono}}; }
+button.accel-button.capturing { border-color: {{warning}}; color: {{warning}}; }
 
 entry, spinbutton, searchbar entry {
   background-color: {{surface}};
   color: {{text}};
   border: 1px solid {{border}};
-  border-radius: 8px;
+  border-bottom: 1px solid alpha({{accent}}, 0.45);
+  border-radius: 0;
   box-shadow: none;
   min-height: 30px;
 }
@@ -97,40 +140,54 @@ entry:focus-within, spinbutton:focus-within { border-color: {{accent}}; outline:
 dropdown > button, dropdown button { padding: 2px 10px; }
 popover > contents, popover.menu > contents, .context-menu > contents {
   background-color: {{surface_alt}};
-  border: 1px solid {{border}};
-  border-radius: 10px;
+  border: 1px solid alpha({{accent}}, 0.45);
+  border-radius: 0;
   color: {{text}};
   padding: 4px;
+  box-shadow: 0 6px 18px alpha(black, 0.55);
 }
+popover > arrow { background: none; border: none; }
 popover listview > row:selected, popover row:selected { background-color: alpha({{accent}}, 0.2); }
-.menu-item { border-radius: 6px; padding: 6px 12px; font-weight: normal; }
+.menu-item { border-radius: 0; padding: 6px 12px; font-weight: normal; border: none; }
+.menu-item:hover { background-color: alpha({{accent}}, 0.12); box-shadow: inset 2px 0 {{accent}}; }
 .menu-item.destructive label { color: {{error}}; }
 .menu-item.mod-item label, button.mod-item { color: {{accent}}; }
-.menu-section { color: {{muted}}; font-size: 0.8em; padding: 6px 12px 2px 12px; }
+.menu-section { color: {{accent}}; font-family: {{mono}}; font-size: 0.8em; padding: 6px 12px 2px 12px; letter-spacing: 2px; }
 
-checkbutton check, checkbutton radio { border: 1px solid {{muted}}; background-color: transparent; }
+checkbutton check, checkbutton radio {
+  border: 1px solid {{muted}};
+  background-color: transparent;
+  border-radius: 0;
+}
 checkbutton check:checked, checkbutton radio:checked {
   background-color: {{accent}};
   border-color: {{accent}};
   color: {{accent_text}};
 }
-switch { background-color: {{surface_alt}}; border: 1px solid {{border}}; }
-switch:checked { background-color: {{accent}}; }
-switch slider { background-color: {{text}}; }
+switch {
+  background-color: {{surface_alt}};
+  border: 1px solid {{border}};
+  border-radius: 0;
+}
+switch:checked { background-color: alpha({{accent}}, 0.8); }
+switch slider { background-color: {{text}}; border-radius: 0; box-shadow: none; }
 
-scale trough { background-color: {{border}}; min-height: 4px; border-radius: 2px; }
-scale highlight { background-color: {{accent}}; border-radius: 2px; }
+scale trough { background-color: {{border}}; min-height: 3px; min-width: 3px; border-radius: 0; }
+scale highlight { background-color: {{accent}}; border-radius: 0; }
 scale slider {
   background-color: {{text}};
   min-width: 12px; min-height: 12px;
   margin: -5px;
   border: none;
+  border-radius: 0;
   box-shadow: none;
 }
 scale slider:hover { background-color: {{accent}}; }
+scale.song-volume trough { min-width: 4px; }
+scale.song-volume slider { min-width: 16px; min-height: 8px; margin: 0 -6px; background-color: {{accent}}; }
 
 scrollbar { background-color: transparent; }
-scrollbar slider { background-color: alpha({{text}}, 0.18); border-radius: 6px; min-width: 6px; min-height: 6px; }
+scrollbar slider { background-color: alpha({{text}}, 0.18); border-radius: 0; min-width: 5px; min-height: 5px; }
 scrollbar slider:hover { background-color: alpha({{accent}}, 0.6); }
 
 paned > separator { background-color: {{border}}; min-width: 1px; min-height: 1px; background-image: none; }
@@ -138,33 +195,49 @@ separator { background-color: {{border}}; }
 expander title { padding: 6px 0; }
 textview.license-text, textview.license-text text { background-color: {{surface}}; color: {{muted}}; font-size: 0.85em; }
 spinner { color: {{accent}}; }
-tooltip, tooltip.background { background-color: {{surface_alt}}; color: {{text}}; border: 1px solid {{border}}; }
+tooltip, tooltip.background {
+  background-color: {{surface_alt}};
+  color: {{text}};
+  border: 1px solid alpha({{accent}}, 0.4);
+  border-radius: 0;
+}
 link, button.link label { color: {{accent}}; }
 
+window.dialog-window { background-color: {{surface}}; }
+.dialog-body { padding: 16px; }
+
 /* ── banners ─────────────────────────────────────────────────────────── */
-.banner-warning, .banner-error { border-radius: 8px; padding: 8px 12px; }
-.banner-warning { background-color: alpha({{warning}}, 0.12); color: {{warning}}; border: 1px solid alpha({{warning}}, 0.4); }
-.banner-error { background-color: alpha({{error}}, 0.12); color: {{error}}; border: 1px solid alpha({{error}}, 0.4); }
+.banner-warning, .banner-error { border-radius: 0; padding: 8px 12px; }
+.banner-warning { background-color: alpha({{warning}}, 0.10); color: {{warning}}; border: 1px solid alpha({{warning}}, 0.4); border-left-width: 3px; }
+.banner-error { background-color: alpha({{error}}, 0.10); color: {{error}}; border: 1px solid alpha({{error}}, 0.4); border-left-width: 3px; }
 
 /* ── player panel ────────────────────────────────────────────────────── */
 .player-panel { background-color: {{surface}}; }
+/* the empty hit area above the thin progress line blends with the panel. */
+.seekbar { background-color: {{surface}}; }
 .player-title { font-size: 1.25em; font-weight: 800; }
 .player-artists { color: {{muted}}; }
-.player-time { color: {{muted}}; font-feature-settings: "tnum"; font-size: 0.9em; }
-.cover { border-radius: 8px; background-color: {{surface_alt}}; }
+.player-time { color: {{muted}}; font-family: {{mono}}; font-size: 0.9em; }
 .cover-placeholder { color: alpha({{text}}, 0.25); }
 
 /* ── tabs ────────────────────────────────────────────────────────────── */
 .tab-bar { background-color: {{bg}}; border-bottom: 1px solid {{border}}; padding: 4px 6px 0 0; }
 .tab-button {
   padding: 6px 8px 6px 12px;
-  border-radius: 8px 8px 0 0;
+  border-radius: 0;
   color: {{muted}};
-  border-bottom: 2px solid transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  margin-right: 2px;
 }
 .tab-button:hover { background-color: alpha({{text}}, 0.05); color: {{text}}; }
-.tab-button.active { color: {{text}}; border-bottom-color: {{accent}}; background-color: {{surface}}; }
-button.tab-close { min-height: 18px; min-width: 18px; padding: 0; border-radius: 9px; }
+.tab-button.active {
+  color: {{text}};
+  background-color: {{surface}};
+  border-color: {{border}};
+  box-shadow: inset 0 2px {{accent}};
+}
+button.tab-close { min-height: 18px; min-width: 18px; padding: 0; border-radius: 0; }
 button.tab-close image { -gtk-icon-size: 12px; }
 button.main-menu { margin: 0 2px 4px 2px; }
 .tab-page { background-color: {{bg}}; }
@@ -173,51 +246,57 @@ button.main-menu { margin: 0 2px 4px 2px; }
 /* ── lists ───────────────────────────────────────────────────────────── */
 list.plain-list, listview.plain-list, list { background-color: transparent; }
 list.plain-list > row {
-  padding: 6px 12px;
-  border-radius: 8px;
+  padding: 5px 12px;
+  border-radius: 0;
   margin: 0 8px;
+  border-left: 2px solid transparent;
 }
-list.plain-list > row:hover { background-color: alpha({{text}}, 0.05); }
+list.plain-list > row:hover { background-color: alpha({{text}}, 0.05); border-left-color: alpha({{accent}}, 0.5); }
+list.plain-list > row.playing { border-left-color: {{accent}}; background-color: alpha({{accent}}, 0.06); }
 list.plain-list > row.playing .track-title,
 list.plain-list > row.playing .playlist-name,
 list.plain-list > row.playing .track-num { color: {{accent}}; }
 list.plain-list > row.invalid .track-title { color: {{error}}; text-decoration: line-through; }
-.track-num { color: {{muted}}; font-feature-settings: "tnum"; }
+list.plain-list > row.dragging { opacity: 0.4; }
+list.plain-list > row.drop-above { box-shadow: inset 0 2px {{accent}}; }
+list.plain-list > row.drop-below { box-shadow: inset 0 -2px {{accent}}; }
+scrolledwindow.drop-area { box-shadow: inset 0 0 0 1px alpha({{accent}}, 0.6); }
+.track-num { color: {{muted}}; font-family: {{mono}}; }
 .track-title, .playlist-name { font-weight: 600; }
 .track-label {
   color: {{accent}};
-  background-color: alpha({{accent}}, 0.12);
-  border-radius: 6px;
-  padding: 1px 6px;
+  border: 1px solid alpha({{accent}}, 0.45);
+  border-radius: 0;
+  padding: 0 6px;
   font-size: 0.85em;
+  font-family: {{mono}};
 }
 .song-page { padding: 22px 26px; }
 
 /* ── log ─────────────────────────────────────────────────────────────── */
-.log-row { padding: 2px 0; font-family: monospace; font-size: 0.9em; }
+.log-row { padding: 2px 0; font-family: {{mono}}; font-size: 0.9em; }
 .log-info { color: {{text}}; }
 .log-ok { color: {{accent}}; }
 .log-warn { color: {{warning}}; }
 .log-error { color: {{error}}; }
-.log-view { padding: 6px; font-family: monospace; font-size: 0.9em; }
+.log-view { padding: 6px; font-family: {{mono}}; font-size: 0.9em; }
 
 /* ── bottom bar + controls ───────────────────────────────────────────── */
 .bottom-bar { background-color: {{surface}}; border-top: 1px solid {{border}}; padding: 6px 12px; }
-.status-line { font-size: 0.9em; }
+.volume-zone { font-family: {{mono}}; font-size: 0.9em; }
 .controls {
   background-color: {{surface_alt}};
   border: 1px solid {{border}};
-  border-radius: 22px;
+  border-radius: 0;
   padding: 3px 10px 3px 6px;
 }
-.controls button { min-height: 32px; min-width: 32px; padding: 0; border-radius: 16px; }
+.controls button { min-height: 32px; min-width: 32px; padding: 0; border-radius: 0; border-color: transparent; }
 .controls button.play-button {
   background-color: {{accent}};
   color: {{accent_text}};
   border: none;
-  min-width: 38px; min-height: 38px;
-  border-radius: 19px;
+  min-width: 40px; min-height: 34px;
+  border-radius: 0;
 }
 .controls button.play-button:hover { background-color: shade({{accent}}, 1.12); }
 .controls button:checked { color: {{accent}}; }
-.controls scale.volume { margin: 0 4px; }

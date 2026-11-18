@@ -15,7 +15,7 @@ namespace dp::ui {
 
 SeekBar::SeekBar() {
     add_css_class("seekbar");
-    set_content_height(static_cast<int>(kThick) + 4);
+    set_content_height(10);  // the hit area; the line is drawn at the bottom
     set_hexpand(true);
     set_cursor("pointer");
     set_draw_func(sigc::mem_fun(*this, &SeekBar::on_draw));
@@ -83,7 +83,9 @@ void SeekBar::animate_to(double thickness) {
 void SeekBar::on_draw(const Cairo::RefPtr<Cairo::Context>& cr, int w, int h) {
     const double f = dragging_ ? drag_fraction_ : fraction_;
     const double t = thickness_;
-    const double y = h - t;
+    // grows upward from a fixed bottom edge, 3px above the widget's bottom so
+    // the knob fits without clipping.
+    const double y = h - 3 - t;
     const Gdk::RGBA track = Theme::get().color("border");
     const Gdk::RGBA accent = Theme::get().color("accent");
     cr->set_source_rgba(track.get_red(), track.get_green(), track.get_blue(), 0.9);
@@ -95,7 +97,7 @@ void SeekBar::on_draw(const Cairo::RefPtr<Cairo::Context>& cr, int w, int h) {
     // the knob appears as the line grows.
     const double grow = (t - kThin) / (kThick - kThin);
     if (grow > 0.05) {
-        const double r = (t / 2 + 2) * grow;
+        const double r = (t / 2 + 1.5) * grow;
         cr->arc(std::clamp(w * f, r, w - r), y + t / 2, r, 0, 2 * M_PI);
         cr->fill();
     }

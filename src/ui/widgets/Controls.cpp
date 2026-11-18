@@ -28,13 +28,6 @@ Controls::Controls() : Gtk::Box(Gtk::Orientation::HORIZONTAL, 2) {
     for (Gtk::Widget* w : std::initializer_list<Gtk::Widget*>{&shuffle_, &prev_, &play_, &next_, &repeat_, &volume_icon_})
         w->set_focusable(false);  // Space must stay play / pause, not "press the focused button"
 
-    volume_.set_range(0, 1);
-    volume_.set_increments(0.02, 0.1);
-    volume_.set_draw_value(false);
-    volume_.set_size_request(96, -1);
-    volume_.set_focusable(false);
-    volume_.add_css_class("volume");
-    volume_.set_tooltip_text(tr("controls.volume"));
 
     append(shuffle_);
     append(prev_);
@@ -42,7 +35,6 @@ Controls::Controls() : Gtk::Box(Gtk::Orientation::HORIZONTAL, 2) {
     append(next_);
     append(repeat_);
     append(volume_icon_);
-    append(volume_);
 
     auto& p = Player::get();
     prev_.signal_clicked().connect([] { Player::get().previous(); });
@@ -53,9 +45,6 @@ Controls::Controls() : Gtk::Box(Gtk::Orientation::HORIZONTAL, 2) {
     });
     repeat_.signal_toggled().connect([this] {
         if (!updating_) Player::get().set_repeat_one(repeat_.get_active());
-    });
-    volume_.signal_value_changed().connect([this] {
-        if (!updating_) Player::get().set_volume(volume_.get_value());
     });
     volume_icon_.signal_clicked().connect([this] {
         auto& pl = Player::get();
@@ -78,7 +67,6 @@ void Controls::sync() {
     play_.set_icon_name(p.state().playing ? "media-playback-pause-symbolic" : "media-playback-start-symbolic");
     shuffle_.set_active(p.shuffle());
     repeat_.set_active(p.repeat_one());
-    if (std::abs(volume_.get_value() - p.volume()) > 1e-3) volume_.set_value(p.volume());
     const double v = p.volume();
     volume_icon_.set_icon_name(v <= 0      ? "audio-volume-muted-symbolic"
                                : v < 0.34 ? "audio-volume-low-symbolic"

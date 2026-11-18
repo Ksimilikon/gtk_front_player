@@ -23,6 +23,15 @@ public:
     virtual bool closable() const { return true; }
     /// the tab became the visible one.
     virtual void on_activated() {}
+    /// the tab is being closed (after the unsaved-changes question).
+    virtual void on_closed() {}
+
+    /// editors: there are changes not saved yet (closing asks first).
+    virtual bool has_unsaved() const { return false; }
+    /// saves the changes (Ctrl+S); `false` — failed, the tab stays open.
+    virtual bool save_changes() { return true; }
+    /// drops the changes (the "don't save" answer).
+    virtual void discard_changes() {}
 
     /// the title changed (the header re-reads `title()`).
     sigc::signal<void()> signal_title_changed;

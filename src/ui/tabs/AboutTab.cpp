@@ -94,6 +94,7 @@ AboutTab::AboutTab() {
     page->append(*license(tr("about.license_app"), "LICENSE-app.txt"));
     page->append(*license(tr("about.license_core"), "LICENSE-core.txt"));
     page->append(*bullet(tr("about.license_gtk")));
+    page->append(*license(tr("about.license_font"), "fonts/LICENSE-Terminus.txt"));
 
     scroll->set_child(*page);
     append(*scroll);

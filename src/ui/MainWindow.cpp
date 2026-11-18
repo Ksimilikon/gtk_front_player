@@ -6,6 +6,7 @@
 #include "core/Library.hpp"
 #include "core/Player.hpp"
 #include "i18n/I18n.hpp"
+#include "ui/Hotkeys.hpp"
 #include "ui/tabs/AboutTab.hpp"
 #include "ui/tabs/EditorTab.hpp"
 #include "ui/tabs/ExportTab.hpp"
@@ -15,6 +16,7 @@
 #include "ui/tabs/ModsTab.hpp"
 #include "ui/tabs/PlaylistTab.hpp"
 #include "ui/tabs/PlaylistsTab.hpp"
+#include "ui/tabs/QueueTab.hpp"
 #include "ui/tabs/SettingsTab.hpp"
 #include "ui/tabs/SongTab.hpp"
 #include "ui/tabs/SyncTab.hpp"
@@ -35,12 +37,8 @@ MainWindow::MainWindow() {
 
     bottom_.add_css_class("bottom-bar");
     busy_.set_tooltip_text(tr("status.indexing"));
-    status_.set_xalign(0);
-    status_.set_hexpand(true);
-    status_.set_ellipsize(Pango::EllipsizeMode::END);
-    status_.add_css_class("status-line");
     bottom_.append(busy_);
-    bottom_.append(status_);
+    bottom_.append(volume_zone_);
     bottom_.append(controls_);
 
     root_.append(panel_);
@@ -58,7 +56,9 @@ MainWindow::MainWindow() {
     add_controller(keys);
 
     Log::get().signal_added().connect(
-        sigc::track_obj([this](const LogEntry& e) { show_status(e.level, e.text); }, *this));
+        sigc::track_obj([this](const LogEntry& e) { volume_zone_.show_status(e.level, e.text); }, *this));
+    // a new queue: its `*` tab comes to the front with its scroll reset.
+    Player::get().signal_queue_started().connect(sigc::track_obj([this](bool focus) { open_queue(focus); }, *this));
     auto busy = [this](bool on) {
         busy_.set_spinning(on);
         busy_.set_visible(on);
@@ -70,7 +70,13 @@ MainWindow::MainWindow() {
         [this] {
             Settings::get().set_number(key::window_width, get_width());
             Settings::get().set_number(key::window_height, get_height());
-            return false;
+            if (closing_) return false;
+            // unsaved editors: ask first, then close for real.
+            tabs_.resolve_unsaved([this] {
+                closing_ = true;
+                close();
+            });
+            return true;
         },
         false);
 }
@@ -95,22 +101,8 @@ void MainWindow::open_from_env() {
     }
 }
 
-void MainWindow::show_status(Level level, const std::string& text) {
-    static const char* classes[] = {"log-info", "log-ok", "log-warn", "log-error"};
-    for (const char* c : classes) status_.remove_css_class(c);
-    status_.add_css_class(classes[static_cast<int>(level)]);
-    status_.set_text(text);
-    status_.set_tooltip_text(text);
-    status_timer_.disconnect();
-    status_timer_ = Glib::signal_timeout().connect(
-        [this] {
-            status_.set_text("");
-            return false;
-        },
-        level == Level::Error ? 12000 : 6000);
-}
-
-/// true if the keyboard focus is in a text field (Space must type there).
+/// true if the keyboard focus is in a text field (Space and arrows must work
+/// there as usual).
 static bool focus_in_text(Gtk::Window& w) {
     Gtk::Widget* f = w.get_focus();
     if (!f) return false;
@@ -118,31 +110,50 @@ static bool focus_in_text(Gtk::Window& w) {
     return GTK_IS_EDITABLE(g) || GTK_IS_TEXT_VIEW(g);
 }
 
-bool MainWindow::on_key(guint keyval, guint, Gdk::ModifierType state) {
-    const bool ctrl = (state & Gdk::ModifierType::CONTROL_MASK) == Gdk::ModifierType::CONTROL_MASK;
-    if (keyval == GDK_KEY_space && !ctrl && !focus_in_text(*this)) {
-        Player::get().toggle();
-        return true;
+bool MainWindow::on_key(guint keyval, guint keycode, Gdk::ModifierType state) {
+    const auto action = Hotkeys::get().match(*get_display(), keyval, keycode, state, focus_in_text(*this));
+    if (!action) return false;
+    run(static_cast<int>(*action));
+    return true;
+}
+
+void MainWindow::run(int a) {
+    auto& p = Player::get();
+    auto& h = Hotkeys::get();
+    switch (static_cast<Action>(a)) {
+        case Action::PlayPause: p.toggle(); break;
+        case Action::VolumeUp: p.change_volume(h.volume_step()); break;
+        case Action::VolumeDown: p.change_volume(-h.volume_step()); break;
+        case Action::NextTrack: p.next(); break;
+        case Action::PrevTrack: p.previous(); break;
+        case Action::TrackVolumeUp: p.change_track_volume(static_cast<float>(h.track_volume_step())); break;
+        case Action::TrackVolumeDown: p.change_track_volume(-static_cast<float>(h.track_volume_step())); break;
+        case Action::SeekForward: p.seek_by(h.seek_step()); break;
+        case Action::SeekBack: p.seek_by(-h.seek_step()); break;
+        case Action::Save:
+            if (auto* t = tabs_.current()) t->save_changes();
+            break;
+        case Action::CloseTab: tabs_.close_current(); break;
+        case Action::NextTab: tabs_.cycle(+1); break;
+        case Action::PrevTab: tabs_.cycle(-1); break;
+        case Action::NewPlaylist: open_editor(""); break;
+        case Action::Reindex:
+            // on the playlists tab only.
+            if (auto* t = tabs_.current(); t && t->key() == "playlists") Library::get().index_dir_async(Settings::get().str(key::music_dir));
+            break;
+        case Action::OpenSettings: open_page("settings"); break;
+        case Action::Quit: close(); break;
     }
-    if (!ctrl) return false;
-    switch (keyval) {
-        case GDK_KEY_w: tabs_.close_current(); return true;
-        case GDK_KEY_Tab: tabs_.cycle(+1); return true;
-        case GDK_KEY_ISO_Left_Tab: tabs_.cycle(-1); return true;
-        case GDK_KEY_Page_Down: tabs_.cycle(+1); return true;
-        case GDK_KEY_Page_Up: tabs_.cycle(-1); return true;
-        case GDK_KEY_Right:
-            if (focus_in_text(*this)) return false;
-            Player::get().next();
-            return true;
-        case GDK_KEY_Left:
-            if (focus_in_text(*this)) return false;
-            Player::get().previous();
-            return true;
-        case GDK_KEY_n: open_editor(""); return true;
-        case GDK_KEY_comma: open_page("settings"); return true;
-        case GDK_KEY_q: close(); return true;
-        default: return false;
+}
+
+void MainWindow::open_queue(bool focus) {
+    Tab* current = tabs_.current();
+    Tab* q = tabs_.open(QueueTab::kKey, [] { return std::make_unique<QueueTab>(); });
+    q->signal_title_changed.emit();
+    if (focus) {
+        TabHost::reset_scroll(*q);
+    } else if (current && current != q) {
+        tabs_.focus(current->key());  // a preview: stay where the user is
     }
 }
 

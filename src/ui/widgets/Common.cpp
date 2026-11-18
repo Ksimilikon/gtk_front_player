@@ -6,10 +6,12 @@
 #include <gtkmm/button.h>
 #include <gtkmm/filedialog.h>
 #include <gtkmm/filefilter.h>
+#include <gtkmm/eventcontrollermotion.h>
 #include <gtkmm/gestureclick.h>
 #include <gtkmm/gesturelongpress.h>
 #include <gtkmm/separator.h>
 
+#include "core/Covers.hpp"
 #include "i18n/I18n.hpp"
 #include "theme/Theme.hpp"
 
@@ -39,13 +41,28 @@ void CoverView::measure_vfunc(Gtk::Orientation, int, int& min, int& nat, int& mi
     min_base = nat_base = -1;
 }
 
+void CoverView::set_track_async(int64_t id) {
+    const uint64_t req = ++request_;
+    Covers::get().thumb_track(id, size_, alive_, [this, req](const Glib::RefPtr<Gdk::Texture>& t) {
+        if (req == request_) set(t);
+    });
+}
+
+void CoverView::set_file_async(const std::string& path, int64_t fallback_track) {
+    const uint64_t req = ++request_;
+    auto with_fallback = [this, req, fallback_track](const Glib::RefPtr<Gdk::Texture>& t) {
+        if (req != request_) return;
+        if (t || !fallback_track) return set(t);
+        set_track_async(fallback_track);
+    };
+    if (path.empty()) return with_fallback({});
+    Covers::get().thumb_file(path, size_, alive_, with_fallback);
+}
+
 void CoverView::snapshot_vfunc(const Glib::RefPtr<Gtk::Snapshot>& snapshot) {
     const float w = static_cast<float>(get_width()), h = static_cast<float>(get_height());
-    const float radius = std::min(w, h) > 100 ? 12.0f : 7.0f;
-    GskRoundedRect clip;
-    graphene_rect_t bounds = GRAPHENE_RECT_INIT(0, 0, w, h);
-    gsk_rounded_rect_init_from_rect(&clip, &bounds, radius);
-    gtk_snapshot_push_rounded_clip(snapshot->gobj(), &clip);
+    // a plain square: the picture fills it, cropped.
+    snapshot->push_clip(Gdk::Graphene::Rect(0, 0, w, h));
     const Gdk::RGBA bg = Theme::get().color("surface_alt");
     snapshot->append_color(bg, Gdk::Graphene::Rect(0, 0, w, h));
     if (tex_) {
@@ -68,7 +85,19 @@ void CoverView::snapshot_vfunc(const Glib::RefPtr<Gtk::Snapshot>& snapshot) {
         snapshot->append_layout(layout, fg);
         snapshot->restore();
     }
-    gtk_snapshot_pop(snapshot->gobj());
+    snapshot->pop();
+}
+
+void no_wheel(Gtk::Widget& w) {
+    GListModel* list = gtk_widget_observe_controllers(w.gobj());
+    std::vector<GtkEventController*> scroll;
+    for (guint i = 0; i < g_list_model_get_n_items(list); ++i) {
+        auto* c = static_cast<GtkEventController*>(g_list_model_get_item(list, i));
+        if (GTK_IS_EVENT_CONTROLLER_SCROLL(c)) scroll.push_back(c);
+        g_object_unref(c);
+    }
+    g_object_unref(list);
+    for (auto* c : scroll) gtk_widget_remove_controller(w.gobj(), c);
 }
 
 Gtk::Label* make_label(const std::string& text, const std::string& css_class, bool wrap) {
@@ -123,6 +152,23 @@ Gtk::Box* banner(const std::string& text, bool error) {
     return box;
 }
 
+void autohide_on_leave(Gtk::Popover& pop) {
+    auto timer = std::make_shared<sigc::connection>();
+    auto motion = Gtk::EventControllerMotion::create();
+    motion->signal_enter().connect([timer](double, double) { timer->disconnect(); });
+    motion->signal_leave().connect([&pop, timer] {
+        timer->disconnect();
+        *timer = Glib::signal_timeout().connect(
+            [&pop] {
+                pop.popdown();
+                return false;
+            },
+            200);
+    });
+    pop.add_controller(motion);
+    pop.signal_closed().connect([timer] { timer->disconnect(); });
+}
+
 void show_menu(Gtk::Widget& parent, double x, double y, const std::vector<MenuItem>& items) {
     if (items.empty()) return;
     auto* pop = new Gtk::Popover();
@@ -148,6 +194,7 @@ void show_menu(Gtk::Widget& parent, double x, double y, const std::vector<MenuIt
         box->append(*b);
     }
     pop->set_child(*box);
+    autohide_on_leave(*pop);
     pop->signal_closed().connect([pop] {
         // deferred: the popover may still be inside its own signal emission.
         Glib::signal_idle().connect_once([pop] {

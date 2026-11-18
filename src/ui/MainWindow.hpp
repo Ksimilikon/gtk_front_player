@@ -12,6 +12,7 @@
 #include "ui/TabHost.hpp"
 #include "ui/widgets/Controls.hpp"
 #include "ui/widgets/PlayerPanel.hpp"
+#include "ui/widgets/VolumeZone.hpp"
 
 namespace dp::ui {
 
@@ -34,7 +35,8 @@ public:
 private:
     void open_from_env();
     bool on_key(guint keyval, guint keycode, Gdk::ModifierType state);
-    void show_status(Level level, const std::string& text);
+    void run(int action);
+    void open_queue(bool focus);
 
     Gtk::Box root_{Gtk::Orientation::VERTICAL, 0};
     PlayerPanel panel_;
@@ -42,9 +44,9 @@ private:
     MainMenuButton menu_;
     Gtk::Box bottom_{Gtk::Orientation::HORIZONTAL, 10};
     Gtk::Spinner busy_;
-    Gtk::Label status_;
+    VolumeZone volume_zone_;
     Controls controls_;
-    sigc::connection status_timer_;
+    bool closing_ = false;
 };
 
 }  // namespace dp::ui

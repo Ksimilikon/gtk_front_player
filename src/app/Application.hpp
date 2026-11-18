@@ -14,6 +14,11 @@ namespace ui {
 class MainWindow;
 }
 
+/// quits (asking about unsaved changes first) and starts the app again.
+void request_restart();
+/// set by `request_restart`; `main` re-executes the program after `run`.
+bool restart_requested();
+
 class Application : public Gtk::Application {
 public:
     static Glib::RefPtr<Application> create();

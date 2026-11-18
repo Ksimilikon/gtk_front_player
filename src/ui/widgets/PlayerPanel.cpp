@@ -35,7 +35,6 @@ PlayerPanel::PlayerPanel() : Gtk::Box(Gtk::Orientation::VERTICAL, 0) {
     content_.append(text_);
     content_.append(time_);
     content_.set_cursor("pointer");
-    content_.set_tooltip_text(tr("player.open_song"));
 
     auto click = Gtk::GestureClick::create();
     click->set_button(GDK_BUTTON_PRIMARY);

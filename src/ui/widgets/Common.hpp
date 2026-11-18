@@ -13,19 +13,24 @@
 #include <gtkmm/window.h>
 
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace dp::ui {
 
 /// a square cover of a fixed size: the picture is cropped to fill the square
-/// (like CSS `object-fit: cover`) with rounded corners; a note glyph when
-/// there is no picture.
+/// (like CSS `object-fit: cover`), square corners; a note glyph when there is
+/// no picture.
 class CoverView : public Gtk::Widget {
 public:
     explicit CoverView(int size);
     void set(const Glib::RefPtr<Gdk::Texture>& tex);
     void set_size(int size);
+    /// loads a thumbnail of the track in the background.
+    void set_track_async(int64_t id);
+    /// an image file, or (none / unreadable) the cover of `fallback_track`.
+    void set_file_async(const std::string& path, int64_t fallback_track);
 
 protected:
     Gtk::SizeRequestMode get_request_mode_vfunc() const override;
@@ -35,7 +40,13 @@ protected:
 private:
     int size_;
     Glib::RefPtr<Gdk::Texture> tex_;
+    std::shared_ptr<int> alive_ = std::make_shared<int>(0);
+    uint64_t request_ = 0;  // the latest async request wins
 };
+
+/// removes the mouse-wheel handling of a scale / spin button (the wheel then
+/// scrolls the page instead of changing the value).
+void no_wheel(Gtk::Widget& w);
 
 Gtk::Label* make_label(const std::string& text, const std::string& css_class = {}, bool wrap = false);
 Gtk::Label* section_title(const std::string& text);
@@ -54,6 +65,9 @@ struct MenuItem {
     std::string css;         // e.g. "destructive"
     bool separator = false;  // draw a separator before the item
 };
+/// a popover closes by itself 0.2 s after the pointer leaves it (coming back
+/// in time keeps it open).
+void autohide_on_leave(Gtk::Popover& pop);
 /// shows `items` under `parent` at (x, y) in its coordinates.
 void show_menu(Gtk::Widget& parent, double x, double y, const std::vector<MenuItem>& items);
 /// attaches right-click (and long-press) → `build()` items.

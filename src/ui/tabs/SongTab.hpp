@@ -1,5 +1,8 @@
-// the song overview: the cover, the tags (editable, written into the file),
-// the personal marks (color, label, volume) and technical info.
+// the song overview. By default it only shows the song: the cover in the
+// center with the song's own volume as a vertical slider along it, the tags,
+// the playlists the song is in and technical info. The "Edit" button turns
+// on editing (tags written into the file, marks, the file path, the cover);
+// Ctrl+S saves.
 #pragma once
 
 #include <gtkmm/checkbutton.h>
@@ -19,23 +22,34 @@ public:
     static std::string key_for(int64_t id) { return "song:" + std::to_string(id); }
     std::string key() const override { return key_for(id_); }
     std::string title() const override;
-    void on_activated() override { reload(); }
+    void on_activated() override;
+
+    bool has_unsaved() const override;
+    bool save_changes() override;
+    void discard_changes() override { set_editing(false); }
 
 private:
     void reload();
-    void save_tags();
-    void set_color(const std::string& c);
+    void build_view();
+    void build_edit();
+    void set_editing(bool on);
+    bool rename_file(const std::string& to);
 
     int64_t id_;
     core::Track track_;
-    CoverView cover_{240};
-    Gtk::Label heading_, artists_heading_;
-    Gtk::Entry title_, artists_, album_, genres_, label_;
-    Gtk::Scale volume_{Gtk::Orientation::HORIZONTAL};
+    bool editing_ = false;
+    std::string edit_color_;
+
+    CoverView cover_{260};
+    Gtk::Scale volume_{Gtk::Orientation::VERTICAL};
+    Gtk::Label volume_value_;
+    Gtk::Label heading_, subheading_;
+    Gtk::Box actions_{Gtk::Orientation::HORIZONTAL, 6};
+    Gtk::Box body_{Gtk::Orientation::VERTICAL, 6};
+    // edit mode fields
+    Gtk::Entry title_, artists_, album_, genres_, label_, path_;
     Gtk::CheckButton keep_;
-    Gtk::Box colors_{Gtk::Orientation::HORIZONTAL, 6};
-    Gtk::Box info_{Gtk::Orientation::VERTICAL, 4};
-    Gtk::Box mod_actions_{Gtk::Orientation::HORIZONTAL, 6};
+    Gtk::Label error_;
     bool loading_ = false;
 };
 

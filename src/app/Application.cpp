@@ -17,6 +17,20 @@
 
 namespace dp {
 
+static bool g_restart = false;
+
+bool restart_requested() { return g_restart; }
+
+void request_restart() {
+    g_restart = true;
+    // closing the window goes through the unsaved-changes questions.
+    if (auto app = Gtk::Application::get_default()) {
+        auto* gapp = dynamic_cast<Gtk::Application*>(app.get());
+        if (gapp)
+            for (auto* w : gapp->get_windows()) w->close();
+    }
+}
+
 Glib::RefPtr<Application> Application::create() { return Glib::make_refptr_for_instance(new Application()); }
 
 Application::Application() : Gtk::Application(DP_APP_ID, Gio::Application::Flags::DEFAULT_FLAGS) {}
@@ -26,12 +40,14 @@ Application::~Application() = default;
 void Application::on_startup() {
     Gtk::Application::on_startup();
     paths::ensure_dirs();
-    Settings::get().load(paths::config_dir() / "settings.conf");
+    Settings::get().load(paths::settings_file());
     const auto res = paths::resource_dir();
     I18n::get().load(res / "lang", Settings::get().str(key::language, "auto"));
+    Theme::register_fonts(res / "fonts");
     Theme::get().apply(res / "themes", Settings::get().str(key::theme, "dark"));
 
-    core::Dirs dirs{paths::cache_dir(), paths::config_dir(), paths::data_dir(),
+    // one directory for everything, exactly as the TUI passes it.
+    core::Dirs dirs{paths::app_dir(), paths::app_dir(), paths::app_dir(),
                     Settings::get().str(key::music_dir, paths::default_music_dir().string())};
     const uint32_t st = core::init(dirs);
     if (st != 0) {

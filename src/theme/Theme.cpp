@@ -4,15 +4,24 @@
 #include <gtkmm/settings.h>
 #include <gtkmm/stylecontext.h>
 
+#include <fontconfig/fontconfig.h>
+#include <pango/pangocairo.h>
+#include <pango/pangofc-fontmap.h>
+#include <pangomm/fontdescription.h>
+
 #include <fstream>
 #include <sstream>
 
 #include "util/Format.hpp"
 #include "util/Log.hpp"
+#include "util/Settings.hpp"
 
 namespace dp {
 
 namespace fs = std::filesystem;
+
+// the family of the bundled pixel font (data/fonts/TerminusTTF*.ttf).
+static constexpr const char* kPixelFamily = "Terminus (TTF)";
 
 // the built-in dark theme: black with a green accent.
 static const std::map<std::string, std::string> kDark = {
@@ -46,6 +55,20 @@ void Theme::apply(const fs::path& dir, const std::string& id) {
     id_ = fs::exists(dir / (id + ".theme"), ec) ? id : "dark";
     tokens_ = kDark;
     for (auto& [k, v] : parse(dir / (id_ + ".theme"))) tokens_[k] = v;
+    theme_tokens_ = tokens_;
+    // the user's palette goes over the theme.
+    for (const auto& t : tokens())
+        if (auto v = Settings::get().str("color." + t); !v.empty()) tokens_[t] = v;
+
+    // fonts: {{font}} for the UI, {{mono}} for captions and numbers.
+    if (font() == "pixel") {
+        tokens_["font"] = tokens_["mono"] = "\"" + std::string(kPixelFamily) + "\", monospace";
+    } else {
+        Glib::ustring sys = Gtk::Settings::get_default()->property_gtk_font_name().get_value();
+        const std::string family = sys.empty() ? "sans-serif" : Pango::FontDescription(sys).get_family().raw();
+        tokens_["font"] = "\"" + family + "\", sans-serif";
+        tokens_["mono"] = "monospace";
+    }
 
     std::ifstream in(dir / "style.css");
     std::stringstream ss;
@@ -83,6 +106,51 @@ void Theme::apply(const fs::path& dir, const std::string& id) {
 #endif
     provider_->load_from_string(css);
     changed_.emit();
+}
+
+const std::vector<FontInfo>& Theme::fonts() {
+    static const std::vector<FontInfo> list = {{"pixel", "font.pixel"}, {"system", "font.system"}};
+    return list;
+}
+
+void Theme::register_fonts(const std::filesystem::path& dir) {
+    std::error_code ec;
+    bool added = false;
+    for (const auto& e : fs::directory_iterator(dir, ec)) {
+        const auto ext = e.path().extension();
+        if (ext != ".ttf" && ext != ".otf") continue;
+        added |= FcConfigAppFontAddFile(nullptr, reinterpret_cast<const FcChar8*>(e.path().c_str())) != 0;
+    }
+    // the font map was created before: let it see the new fonts.
+    if (added) pango_fc_font_map_config_changed(PANGO_FC_FONT_MAP(pango_cairo_font_map_get_default()));
+}
+
+std::string Theme::font() const { return Settings::get().str("font", "pixel"); }
+
+void Theme::set_font(const std::string& id) {
+    Settings::get().set("font", id);
+    apply(dir_, id_);
+}
+
+const std::vector<std::string>& Theme::tokens() {
+    static const std::vector<std::string> list = {"accent",  "accent_text", "bg",      "surface", "surface_alt",
+                                                  "border",  "text",        "muted",   "warning", "error"};
+    return list;
+}
+
+std::string Theme::theme_value(const std::string& token) const {
+    const auto it = theme_tokens_.find(token);
+    return it != theme_tokens_.end() ? it->second : "#ff00ff";
+}
+
+void Theme::set_override(const std::string& token, const std::string& value) {
+    Settings::get().set("color." + token, value);
+    apply(dir_, id_);
+}
+
+void Theme::reset_overrides() {
+    for (const auto& t : tokens()) Settings::get().set("color." + t, "");
+    apply(dir_, id_);
 }
 
 Gdk::RGBA Theme::color(const std::string& token) const {

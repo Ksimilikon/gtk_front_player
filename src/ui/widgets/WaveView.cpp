@@ -33,7 +33,7 @@ WaveView::WaveView() {
         p.retarget(rng_);
         return p;
     };
-    const double alphas[] = {0.10, 0.14, 0.20};
+    const double alphas[] = {0.04, 0.06, 0.08};
     for (size_t i = 0; i < waves_.size(); ++i) {
         Wave& w = waves_[i];
         w.amp = make(0.10, 0.22, 0.05);
@@ -84,10 +84,7 @@ void WaveView::on_draw(const Cairo::RefPtr<Cairo::Context>& cr, int width, int h
         const double amp = w.amp.value * height, base = w.level.value * height;
         cr->move_to(0, base + amp * std::sin(w.phase));
         for (double x = step; x <= width + step; x += step) cr->line_to(x, base + amp * std::sin(k * x + w.phase));
-        // the crest line, then the body down to the bottom edge.
-        cr->set_source_rgba(c.get_red(), c.get_green(), c.get_blue(), std::min(1.0, w.alpha * 2.2));
-        cr->set_line_width(1.2);
-        cr->stroke_preserve();
+        // the body down to the bottom edge, no outline.
         cr->line_to(width, height);
         cr->line_to(0, height);
         cr->close_path();

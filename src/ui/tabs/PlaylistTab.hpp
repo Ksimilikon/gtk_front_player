@@ -1,5 +1,6 @@
-// a playlist view: its songs; activating one plays the playlist from it. An
-// empty name is the whole library ("all songs").
+// a playlist: just its songs. Activating a song starts the playlist as the
+// queue (the queue has its own tab, marked with `*`). Songs are reordered by
+// drag-and-drop. An empty name is the whole library ("all songs").
 #pragma once
 
 #include <gtkmm/label.h>
@@ -21,10 +22,9 @@ public:
 
 private:
     void rebuild();
-    void mark_playing();
     std::vector<int64_t> ids() const;
-    std::string queue_name() const;
-    std::vector<MenuItem> track_menu(int64_t id, size_t index);
+    std::vector<MenuItem> track_menu(Gtk::Widget& row, int64_t id, size_t index);
+    void move_track(size_t from, size_t to);
 
     std::string name_;
     CoverView cover_{120};

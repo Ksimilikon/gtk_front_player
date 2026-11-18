@@ -10,6 +10,7 @@
 #include "ui/Menus.hpp"
 #include "ui/Nav.hpp"
 #include "util/Format.hpp"
+#include "util/Settings.hpp"
 
 namespace dp::ui {
 
@@ -31,9 +32,11 @@ PlaylistsTab::PlaylistsTab() {
     search_.set_hexpand(true);
     bar->append(search_);
     auto* reindex = icon_button("view-refresh-symbolic", tr("playlists.reindex"));
-    reindex->signal_clicked().connect([] { Library::get().index_dir_async(""); });
+    reindex->signal_clicked().connect([] { Library::get().index_dir_async(Settings::get().str(key::music_dir)); });
     bar->append(*reindex);
-    auto* add = Gtk::make_managed<Gtk::Button>(tr("playlists.new"));
+    auto* add = Gtk::make_managed<Gtk::Button>("+");
+    add->set_tooltip_text(tr("playlists.new"));
+    add->add_css_class("plus-button");
     add->add_css_class("suggested-action");
     add->signal_clicked().connect([] { nav().open_editor(""); });
     bar->append(*add);
@@ -71,14 +74,15 @@ void PlaylistsTab::rebuild() {
     const std::string playing_queue = Player::get().state().has_track ? Player::get().queue_name() : "";
 
     auto add_row = [&](const std::string& name, const std::string& display, size_t count, uint64_t dur,
-                       const Glib::RefPtr<Gdk::Texture>& cover) {
+                       const std::string& cover, int64_t first_track) {
         auto* row = Gtk::make_managed<PlaylistRow>();
         row->name = name;
         row->search = display;
         row->add_css_class("playlist-row");
         auto* box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 14);
         auto* cv = Gtk::make_managed<CoverView>(48);
-        cv->set(cover);
+        // no own cover — the first song's.
+        cv->set_file_async(cover, first_track);
         box->append(*cv);
         auto* text = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 2);
         text->set_valign(Gtk::Align::CENTER);
@@ -108,6 +112,7 @@ void PlaylistsTab::rebuild() {
             };
             items.push_back({tr("action.play"), [ids, display] { Player::get().play_ids(display, ids(), 0); }});
             items.push_back({tr("action.open"), [name] { nav().open_playlist(name); }});
+            append_queue_items(items, ids, display);
             if (!name.empty()) {
                 items.push_back({tr("action.edit"), [name] { nav().open_editor(name); }});
                 items.push_back({tr("action.export"), [name] { nav().open_export_playlists({name}); }});
@@ -128,9 +133,10 @@ void PlaylistsTab::rebuild() {
     std::vector<int64_t> all;
     all.reserve(lib.tracks().size());
     for (const auto& t : lib.tracks()) all.push_back(t.id);
-    add_row("", tr("playlists.all_songs"), all.size(), lib.total_duration(all), nullptr);
+    add_row("", tr("playlists.all_songs"), all.size(), lib.total_duration(all), "", 0);
     for (const auto& p : lib.playlists())
-        add_row(p.name, p.name, p.tracks.size(), lib.total_duration(p.tracks), Covers::get().file(p.cover));
+        add_row(p.name, p.name, p.tracks.size(), lib.total_duration(p.tracks), p.cover,
+                p.tracks.empty() ? 0 : p.tracks.front());
     empty_.set_visible(lib.playlists().empty());
 }
 
