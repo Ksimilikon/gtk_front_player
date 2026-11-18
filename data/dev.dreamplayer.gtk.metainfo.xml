@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.dreamplayer.gtk</id>
+  <name>Dream Player</name>
+  <summary>Offline music player with sync between devices</summary>
+  <summary xml:lang="ru">Плеер офлайн-музыки с синхронизацией между устройствами</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later AND MPL-2.0 AND OFL-1.1</project_license>
+  <description>
+    <p>A GTK 4 desktop frontend for the rs_dream_player core: playlists, a play queue,
+      tag and cover editing, import / export of .dplr packets, sync with other devices
+      (TCP, USB through adb), core mods, MPRIS. This project is created entirely with AI.</p>
+  </description>
+  <launchable type="desktop-id">dev.dreamplayer.gtk.desktop</launchable>
+  <url type="homepage">https://github.com/ksimilikon/gtk_front_player</url>
+  <developer id="com.github.ksimilikon"><name>ksimilikon</name></developer>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-11-18"/>
+  </releases>
+</component>

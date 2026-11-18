@@ -1,0 +1,43 @@
+# Maintainer: ksimilikon
+# Dream Player GTK for Arch Linux. Built by packaging/build.sh from local
+# source tarballs (the app + the rs_dream_player core it links privately).
+pkgname=dream-player-gtk
+pkgver=0.1.0
+pkgrel=1
+_corever=0.1.4
+pkgdesc="Offline music player with sync between devices (GTK 4 frontend of rs_dream_player)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/ksimilikon/gtk_front_player"
+license=('GPL-3.0-or-later' 'MPL-2.0' 'OFL-1.1')
+depends=('gtkmm-4.0' 'gtk4' 'glib2' 'pango' 'gdk-pixbuf2' 'fontconfig' 'alsa-lib' 'hicolor-icon-theme'
+         'gcc-libs' 'glibc')
+makedepends=('meson' 'ninja' 'cargo' 'pkgconf')
+optdepends=('android-tools: sync with a phone over USB (adb)')
+options=('!lto' '!debug')
+source=("gtk_front_player-$pkgver.tar.gz"
+        "rs_dream_player-$_corever.tar.gz")
+sha256sums=('SKIP' 'SKIP')
+
+prepare() {
+    # the crates are fetched here (network), so build() can stay offline.
+    export CARGO_HOME="$srcdir/cargo-home"
+    cargo fetch --manifest-path "$srcdir/rs_dream_player-$_corever/Cargo.toml"
+}
+
+build() {
+    export CARGO_HOME="$srcdir/cargo-home"
+    export CARGO_NET_OFFLINE=true
+    arch-meson "gtk_front_player-$pkgver" build \
+        -Dcore_dir="$srcdir/rs_dream_player-$_corever" \
+        -Dcore_profile=release \
+        -Dsource_data_fallback=false
+    meson compile -C build
+}
+
+package() {
+    meson install -C build --destdir "$pkgdir"
+    install -Dm644 "gtk_front_player-$pkgver/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm644 "rs_dream_player-$_corever/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE-core"
+    install -Dm644 "gtk_front_player-$pkgver/data/fonts/LICENSE-Terminus.txt" \
+        "$pkgdir/usr/share/licenses/$pkgname/LICENSE-Terminus"
+}

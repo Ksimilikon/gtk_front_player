@@ -71,6 +71,30 @@ ninja -C build             # ядро собирается cargo (--features mod
 
 Установка: `meson install -C build` (бинарник, `libdream_player.so`, ресурсы, `.desktop`).
 
+## Пакеты для дистрибутивов
+
+```sh
+packaging/build.sh            # всё: arch debian ubuntu fedora
+packaging/build.sh arch       # или выборочно
+```
+
+| цель | дистрибутив | результат | как собирается |
+|---|---|---|---|
+| `arch` | Arch / Manjaro / EndeavourOS | `.pkg.tar.zst` | `makepkg` на хосте (Arch), иначе в контейнере |
+| `debian` | Debian 13 (trixie) | `.deb` | контейнер `debian:trixie` |
+| `ubuntu` | Ubuntu 24.04 LTS | `.deb` | контейнер `ubuntu:24.04` |
+| `fedora` | Fedora (последняя) | `.rpm` | контейнер `fedora:latest`, `rpmbuild` по `packaging/rpm/*.spec` |
+
+Каждый пакет собирается внутри своего дистрибутива (Docker или Podman), поэтому он
+слинкован с его GTK / glibc и ставится штатным менеджером пакетов (`pacman -U`, `apt install
+./file.deb`, `dnf install ./file.rpm`). Исходники берутся из рабочих деревьев (вместе с
+незакоммиченными изменениями); ядро — из `CORE_DIR` (по умолчанию `../rs_dream_player`).
+Результат — `packaging/out/`. Для `.deb` поле `Maintainer` задаётся переменной `MAINTAINER`.
+
+Пакет ставит: `/usr/bin/dream_player_gtk`, ядро как приватную библиотеку
+`/usr/lib*/dream_player_gtk/libdream_player.so`, ресурсы `/usr/share/dream_player_gtk/`,
+`.desktop`, иконку и AppStream-метаданные.
+
 ## Где что лежит
 
 Папка приложения общая с TUI ядра — обе программы видят одну библиотеку:

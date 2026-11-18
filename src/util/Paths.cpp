@@ -22,6 +22,8 @@ fs::path resource_dir() {
     std::error_code ec;
     if (const char* env = g_getenv("DREAM_PLAYER_GTK_DATA"); env && fs::is_directory(env, ec)) return env;
     if (fs::is_directory(fs::path(DP_INSTALL_DATA_DIR) / "lang", ec)) return DP_INSTALL_DATA_DIR;
+    // dev builds run from the source tree; packages have no such fallback.
+    if (std::string(DP_SOURCE_DATA_DIR).empty()) return DP_INSTALL_DATA_DIR;
     return DP_SOURCE_DATA_DIR;
 }
 

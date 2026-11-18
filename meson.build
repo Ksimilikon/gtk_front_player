@@ -31,6 +31,10 @@ if core_version == ''
   core_version = 'unknown'
 endif
 
+# the core is a private library of the app (not a system-wide one): it lives
+# in <libdir>/dream_player_gtk and the binary finds it through its RUNPATH.
+private_libdir = get_option('prefix') / get_option('libdir') / meson.project_name()
+
 core_lib = custom_target('dream_player_core',
   output : 'libdream_player.so',
   command : [files('build-aux/build_core.sh'), cargo, core_dir, core_target_dir,
@@ -38,7 +42,7 @@ core_lib = custom_target('dream_player_core',
   console : true,
   build_always_stale : true,
   install : true,
-  install_dir : get_option('libdir'))
+  install_dir : private_libdir)
 
 # ─── the app ──────────────────────────────────────────────────────────────────
 datadir = get_option('prefix') / get_option('datadir') / meson.project_name()
@@ -48,7 +52,8 @@ conf.set_quoted('DP_APP_ID', app_id)
 conf.set_quoted('DP_APP_VERSION', meson.project_version())
 conf.set_quoted('DP_CORE_VERSION', core_version)
 conf.set_quoted('DP_INSTALL_DATA_DIR', datadir)
-conf.set_quoted('DP_SOURCE_DATA_DIR', meson.project_source_root() / 'data')
+conf.set_quoted('DP_SOURCE_DATA_DIR',
+  get_option('source_data_fallback') ? meson.project_source_root() / 'data' : '')
 configure_file(output : 'config.h', configuration : conf)
 
 sources = files(
@@ -100,8 +105,8 @@ executable('dream_player_gtk', sources, core_lib,
   include_directories : include_directories('src', '.'),
   dependencies : [gtkmm, giomm, pixbuf, fontconfig, pangoft, threads],
   link_with : core_lib,
-  build_rpath : meson.project_build_root(),
-  install_rpath : get_option('prefix') / get_option('libdir'),
+  build_rpath : '$ORIGIN',  # the core lies next to the binary in the build dir
+  install_rpath : private_libdir,
   install : true)
 
 install_subdir('data/lang', install_dir : datadir)
@@ -110,3 +115,7 @@ install_subdir('data/fonts', install_dir : datadir)
 install_data('data/LICENSE-app.txt', 'data/LICENSE-core.txt', install_dir : datadir)
 install_data('data/dev.dreamplayer.gtk.desktop',
   install_dir : get_option('datadir') / 'applications')
+install_data('data/dev.dreamplayer.gtk.svg',
+  install_dir : get_option('datadir') / 'icons' / 'hicolor' / 'scalable' / 'apps')
+install_data('data/dev.dreamplayer.gtk.metainfo.xml',
+  install_dir : get_option('datadir') / 'metainfo')

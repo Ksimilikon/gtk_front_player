@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Dream Player icon: a square retro screen with three green waves. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect x="4" y="4" width="120" height="120" fill="#000000" stroke="#1ed760" stroke-width="4"/>
+  <path d="M12 76 Q28 52 44 76 T76 76 T108 76 L116 76 L116 116 L12 116 Z" fill="#1ed760" fill-opacity="0.18"/>
+  <path d="M12 84 Q32 64 52 84 T92 84 T116 80 L116 116 L12 116 Z" fill="#1ed760" fill-opacity="0.28"/>
+  <path d="M12 94 Q36 80 60 94 T108 94 L116 92 L116 116 L12 116 Z" fill="#1ed760" fill-opacity="0.45"/>
+  <rect x="28" y="22" width="12" height="38" fill="#1ed760"/>
+  <rect x="40" y="22" width="20" height="10" fill="#1ed760"/>
+  <rect x="48" y="32" width="12" height="20" fill="#1ed760"/>
+  <rect x="78" y="22" width="12" height="38" fill="#1ed760"/>
+  <rect x="90" y="22" width="16" height="10" fill="#1ed760"/>
+  <rect x="98" y="32" width="8" height="10" fill="#1ed760"/>
+  <rect x="90" y="40" width="16" height="8" fill="#1ed760"/>
+</svg>

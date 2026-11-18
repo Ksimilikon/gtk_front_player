@@ -27,7 +27,7 @@ namespace dp::ui {
 
 MainWindow::MainWindow() {
     set_title("Dream Player");
-    set_icon_name("audio-x-generic");
+    set_icon_name("dev.dreamplayer.gtk");
     set_default_size(static_cast<int>(Settings::get().number(key::window_width, 1100)),
                      static_cast<int>(Settings::get().number(key::window_height, 720)));
     set_nav(this);

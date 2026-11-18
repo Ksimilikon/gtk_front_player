@@ -2,3 +2,5 @@ option('core_dir', type : 'string', value : '../rs_dream_player',
   description : 'path to the rs_dream_player core (relative to the source root or absolute)')
 option('core_profile', type : 'combo', choices : ['release', 'debug'], value : 'release',
   description : 'cargo profile the core is built with')
+option('source_data_fallback', type : 'boolean', value : true,
+  description : 'look for resources in the source tree when they are not installed (dev builds; off for packages)')
