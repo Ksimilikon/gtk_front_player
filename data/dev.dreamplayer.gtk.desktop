@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Dream Player
+GenericName=Music Player
+GenericName[ru]=Музыкальный плеер
+Comment=Offline music player with sync between devices
+Comment[ru]=Плеер офлайн-музыки с синхронизацией между устройствами
+Exec=dream_player_gtk
+Icon=audio-x-generic
+Terminal=false
+Categories=AudioVideo;Audio;Player;GTK;
+Keywords=music;player;audio;playlist;
+StartupNotify=true

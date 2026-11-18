@@ -1,0 +1,223 @@
+/* Dream Player stylesheet template. `{{token}}` is replaced with the value of
+ * the token from the active `.theme` file (see Theme.hpp). Loaded over the
+ * dark variant of the base GTK theme. */
+
+/* GTK's default theme reads these variables (accent, window colors). */
+:root {
+  --accent-bg-color: {{accent}};
+  --accent-fg-color: {{accent_text}};
+  --accent-color: {{accent}};
+  --window-bg-color: {{bg}};
+  --window-fg-color: {{text}};
+  --view-bg-color: {{bg}};
+  --view-fg-color: {{text}};
+  --popover-bg-color: {{surface_alt}};
+  --popover-fg-color: {{text}};
+  --warning-color: {{warning}};
+  --error-color: {{error}};
+  --destructive-color: {{error}};
+}
+
+window, window.background, .background {
+  background-color: {{bg}};
+  color: {{text}};
+}
+
+/* ── generic ─────────────────────────────────────────────────────────── */
+label.muted, .muted { color: {{muted}}; }
+.accent { color: {{accent}}; }
+.error-text { color: {{error}}; }
+.ok-text { color: {{accent}}; }
+.section-title {
+  color: {{muted}};
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.page-title { font-size: 1.6em; font-weight: 800; }
+.about-title { font-size: 2em; font-weight: 800; color: {{accent}}; margin-top: 8px; }
+.form-page { padding: 16px 22px; }
+.toolbar { padding: 10px 14px; }
+.card {
+  background-color: {{surface}};
+  border: 1px solid {{border}};
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.setting-row {
+  padding: 8px 2px;
+  border-bottom: 1px solid {{border}};
+}
+
+selection, text selection, label selection {
+  background-color: alpha({{accent}}, 0.35);
+  color: {{text}};
+}
+
+/* ── buttons / inputs ────────────────────────────────────────────────── */
+button {
+  background-image: none;
+  background-color: {{surface_alt}};
+  color: {{text}};
+  border: 1px solid {{border}};
+  border-radius: 8px;
+  box-shadow: none;
+  min-height: 28px;
+  padding: 2px 12px;
+}
+button:hover { background-color: shade({{surface_alt}}, 1.5); }
+button:active, button:checked { background-color: alpha({{accent}}, 0.18); color: {{accent}}; }
+button:disabled { color: alpha({{text}}, 0.35); }
+button.flat { background-color: transparent; border-color: transparent; }
+button.flat:hover { background-color: alpha({{text}}, 0.07); }
+button.flat:checked { background-color: transparent; color: {{accent}}; }
+button.suggested-action {
+  background-color: {{accent}};
+  color: {{accent_text}};
+  border-color: {{accent}};
+  font-weight: 700;
+}
+button.suggested-action:hover { background-color: shade({{accent}}, 1.1); }
+button.suggested-action:disabled { background-color: alpha({{accent}}, 0.3); color: alpha({{accent_text}}, 0.6); }
+button.destructive-action { color: {{error}}; border-color: alpha({{error}}, 0.4); background-color: transparent; }
+button.destructive-action:hover { background-color: alpha({{error}}, 0.12); }
+button.swatch { padding: 0 6px; min-width: 26px; }
+button.swatch:checked { border-color: {{accent}}; background-color: alpha({{accent}}, 0.12); }
+
+entry, spinbutton, searchbar entry {
+  background-color: {{surface}};
+  color: {{text}};
+  border: 1px solid {{border}};
+  border-radius: 8px;
+  box-shadow: none;
+  min-height: 30px;
+}
+entry:focus-within, spinbutton:focus-within { border-color: {{accent}}; outline: none; }
+
+dropdown > button, dropdown button { padding: 2px 10px; }
+popover > contents, popover.menu > contents, .context-menu > contents {
+  background-color: {{surface_alt}};
+  border: 1px solid {{border}};
+  border-radius: 10px;
+  color: {{text}};
+  padding: 4px;
+}
+popover listview > row:selected, popover row:selected { background-color: alpha({{accent}}, 0.2); }
+.menu-item { border-radius: 6px; padding: 6px 12px; font-weight: normal; }
+.menu-item.destructive label { color: {{error}}; }
+.menu-item.mod-item label, button.mod-item { color: {{accent}}; }
+.menu-section { color: {{muted}}; font-size: 0.8em; padding: 6px 12px 2px 12px; }
+
+checkbutton check, checkbutton radio { border: 1px solid {{muted}}; background-color: transparent; }
+checkbutton check:checked, checkbutton radio:checked {
+  background-color: {{accent}};
+  border-color: {{accent}};
+  color: {{accent_text}};
+}
+switch { background-color: {{surface_alt}}; border: 1px solid {{border}}; }
+switch:checked { background-color: {{accent}}; }
+switch slider { background-color: {{text}}; }
+
+scale trough { background-color: {{border}}; min-height: 4px; border-radius: 2px; }
+scale highlight { background-color: {{accent}}; border-radius: 2px; }
+scale slider {
+  background-color: {{text}};
+  min-width: 12px; min-height: 12px;
+  margin: -5px;
+  border: none;
+  box-shadow: none;
+}
+scale slider:hover { background-color: {{accent}}; }
+
+scrollbar { background-color: transparent; }
+scrollbar slider { background-color: alpha({{text}}, 0.18); border-radius: 6px; min-width: 6px; min-height: 6px; }
+scrollbar slider:hover { background-color: alpha({{accent}}, 0.6); }
+
+paned > separator { background-color: {{border}}; min-width: 1px; min-height: 1px; background-image: none; }
+separator { background-color: {{border}}; }
+expander title { padding: 6px 0; }
+textview.license-text, textview.license-text text { background-color: {{surface}}; color: {{muted}}; font-size: 0.85em; }
+spinner { color: {{accent}}; }
+tooltip, tooltip.background { background-color: {{surface_alt}}; color: {{text}}; border: 1px solid {{border}}; }
+link, button.link label { color: {{accent}}; }
+
+/* ── banners ─────────────────────────────────────────────────────────── */
+.banner-warning, .banner-error { border-radius: 8px; padding: 8px 12px; }
+.banner-warning { background-color: alpha({{warning}}, 0.12); color: {{warning}}; border: 1px solid alpha({{warning}}, 0.4); }
+.banner-error { background-color: alpha({{error}}, 0.12); color: {{error}}; border: 1px solid alpha({{error}}, 0.4); }
+
+/* ── player panel ────────────────────────────────────────────────────── */
+.player-panel { background-color: {{surface}}; }
+.player-title { font-size: 1.25em; font-weight: 800; }
+.player-artists { color: {{muted}}; }
+.player-time { color: {{muted}}; font-feature-settings: "tnum"; font-size: 0.9em; }
+.cover { border-radius: 8px; background-color: {{surface_alt}}; }
+.cover-placeholder { color: alpha({{text}}, 0.25); }
+
+/* ── tabs ────────────────────────────────────────────────────────────── */
+.tab-bar { background-color: {{bg}}; border-bottom: 1px solid {{border}}; padding: 4px 6px 0 0; }
+.tab-button {
+  padding: 6px 8px 6px 12px;
+  border-radius: 8px 8px 0 0;
+  color: {{muted}};
+  border-bottom: 2px solid transparent;
+}
+.tab-button:hover { background-color: alpha({{text}}, 0.05); color: {{text}}; }
+.tab-button.active { color: {{text}}; border-bottom-color: {{accent}}; background-color: {{surface}}; }
+button.tab-close { min-height: 18px; min-width: 18px; padding: 0; border-radius: 9px; }
+button.tab-close image { -gtk-icon-size: 12px; }
+button.main-menu { margin: 0 2px 4px 2px; }
+.tab-page { background-color: {{bg}}; }
+.page-header { padding: 16px 18px 12px 18px; }
+
+/* ── lists ───────────────────────────────────────────────────────────── */
+list.plain-list, listview.plain-list, list { background-color: transparent; }
+list.plain-list > row {
+  padding: 6px 12px;
+  border-radius: 8px;
+  margin: 0 8px;
+}
+list.plain-list > row:hover { background-color: alpha({{text}}, 0.05); }
+list.plain-list > row.playing .track-title,
+list.plain-list > row.playing .playlist-name,
+list.plain-list > row.playing .track-num { color: {{accent}}; }
+list.plain-list > row.invalid .track-title { color: {{error}}; text-decoration: line-through; }
+.track-num { color: {{muted}}; font-feature-settings: "tnum"; }
+.track-title, .playlist-name { font-weight: 600; }
+.track-label {
+  color: {{accent}};
+  background-color: alpha({{accent}}, 0.12);
+  border-radius: 6px;
+  padding: 1px 6px;
+  font-size: 0.85em;
+}
+.song-page { padding: 22px 26px; }
+
+/* ── log ─────────────────────────────────────────────────────────────── */
+.log-row { padding: 2px 0; font-family: monospace; font-size: 0.9em; }
+.log-info { color: {{text}}; }
+.log-ok { color: {{accent}}; }
+.log-warn { color: {{warning}}; }
+.log-error { color: {{error}}; }
+.log-view { padding: 6px; font-family: monospace; font-size: 0.9em; }
+
+/* ── bottom bar + controls ───────────────────────────────────────────── */
+.bottom-bar { background-color: {{surface}}; border-top: 1px solid {{border}}; padding: 6px 12px; }
+.status-line { font-size: 0.9em; }
+.controls {
+  background-color: {{surface_alt}};
+  border: 1px solid {{border}};
+  border-radius: 22px;
+  padding: 3px 10px 3px 6px;
+}
+.controls button { min-height: 32px; min-width: 32px; padding: 0; border-radius: 16px; }
+.controls button.play-button {
+  background-color: {{accent}};
+  color: {{accent_text}};
+  border: none;
+  min-width: 38px; min-height: 38px;
+  border-radius: 19px;
+}
+.controls button.play-button:hover { background-color: shade({{accent}}, 1.12); }
+.controls button:checked { color: {{accent}}; }
+.controls scale.volume { margin: 0 4px; }
