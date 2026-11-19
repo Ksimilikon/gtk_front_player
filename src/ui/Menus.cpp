@@ -49,6 +49,7 @@ void MainMenuButton::rebuild() {
         box->append(*b);
     };
     add(tr("page.playlists"), "view-list-symbolic", [] { nav().open_playlists(); });
+    add(tr("page.orphans"), "audio-x-generic-symbolic", [] { nav().open_page("orphans"); });
     add(tr("page.new_playlist"), "list-add-symbolic", [] { nav().open_editor(""); });
     box->append(*Gtk::make_managed<Gtk::Separator>());
     add(tr("page.sync"), "network-transmit-receive-symbolic", [] { nav().open_page("sync"); });

@@ -14,6 +14,7 @@ public:
     virtual void open_playlists() = 0;
     /// the playlist view; an empty name — all songs of the library.
     virtual void open_playlist(const std::string& name) = 0;
+    virtual void play_playlist(const std::string& name, const std::vector<int64_t>& ids, size_t start) = 0;
     /// the playlist editor; an empty name — a new playlist.
     virtual void open_editor(const std::string& name) = 0;
     virtual void open_song(int64_t id) = 0;

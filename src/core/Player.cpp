@@ -71,7 +71,7 @@ void Player::shuffle_rest(bool on) {
         std::stable_sort(first, queue_.end(), [](const auto& a, const auto& b) { return a.orig < b.orig; });
 }
 
-void Player::play_queue(const std::string& name, std::vector<QueueItem> items, size_t start, bool focus) {
+void Player::play_queue(const std::string& name, std::vector<QueueItem> items, size_t start, bool focus, bool playlist) {
     if (items.empty()) {
         Log::get().warn("player", tr("player.empty_queue"));
         return;
@@ -80,6 +80,7 @@ void Player::play_queue(const std::string& name, std::vector<QueueItem> items, s
     queue_.clear();
     for (size_t i = 0; i < items.size(); ++i)
         queue_.push_back({std::move(items[i]), next_key_++, static_cast<int64_t>(i) * 1024});
+    playlist_ = playlist;
     queue_name_ = name;
     if (shuffle_) {
         // the chosen song first, the rest shuffled.
@@ -98,7 +99,7 @@ void Player::play_ids(const std::string& name, const std::vector<int64_t>& ids, 
     std::vector<QueueItem> items;
     items.reserve(ids.size());
     for (int64_t id : ids) items.push_back({id, {}});
-    play_queue(name, std::move(items), start);
+    play_queue(name, std::move(items), start, true, true);
 }
 
 void Player::play_path(const std::string& path) {
@@ -173,6 +174,7 @@ void Player::remove_at(size_t pos) {
 void Player::clear() {
     engine_stop();
     queue_.clear();
+    playlist_ = false;
     queue_name_.clear();
     index_ = 0;
     state_ = {};
@@ -229,8 +231,11 @@ void Player::step(int dir) {
 }
 
 void Player::on_track_end() {
+    if (!state_.has_track) return;
     if (repeat_one_)
         play_current();
+    else if (looping_playlist() && index_ + 1 == queue_.size())
+        jump(0);
     else
         step(+1);
 }
@@ -294,6 +299,13 @@ void Player::seek_by(int seconds) {
     const long target = static_cast<long>(state_.position) + seconds;
     const long max = state_.duration ? static_cast<long>(state_.duration) - 1 : target;
     seek(static_cast<uint64_t>(std::clamp(target, 0L, std::max(0L, max))));
+}
+
+bool Player::repeat_playlist() const { return Settings::get().boolean(key::repeat_playlist, true); }
+
+void Player::set_repeat_playlist(bool on) {
+    Settings::get().set_bool(key::repeat_playlist, on);
+    modes_changed_.emit();
 }
 
 void Player::set_repeat_one(bool on) {

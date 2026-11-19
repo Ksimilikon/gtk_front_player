@@ -519,3 +519,17 @@ font.pixel = Пиксельный (Terminus, как в tty)
 font.system = Системный
 hotkey.reindex = Переиндексация (вкладка плейлистов)
 about.license_font = Пиксельный шрифт Terminus (TTF) — SIL Open Font License 1.1
+
+page.orphans = Песни-сироты
+settings.repeat_playlist = Повторять плейлист после последней песни
+settings.close_played_playlist = Закрывать вкладку плейлиста при запуске воспроизведения
+orphans.unmarked = Без отметки
+orphans.marked = Помеченные
+orphans.all = Все песни-сироты
+orphans.keep_mark = Отмечена
+orphans.mark = Пометить для сохранения
+orphans.unmark = Снять отметку сохранения
+orphans.delete_shown = Удалить показанные песни
+orphans.delete_one = Удалить с устройства и из медиатеки
+orphans.confirm_one = Удалить файл {0} с устройства и его запись из медиатеки?
+orphans.confirm_many = Удалить все показанные песни ({0}) с устройства и из медиатеки?

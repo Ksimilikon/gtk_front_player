@@ -5,7 +5,6 @@
 #pragma once
 
 #include <gtkmm/checkbutton.h>
-#include <gtkmm/dropdown.h>
 #include <gtkmm/entry.h>
 #include <gtkmm/label.h>
 #include <gtkmm/listbox.h>
@@ -13,9 +12,9 @@
 #include <gtkmm/searchentry.h>
 #include <gtkmm/togglebutton.h>
 
-#include <unordered_map>
 #include <unordered_set>
 
+#include "ui/widgets/TrackSort.hpp"
 #include "ui/Tab.hpp"
 #include "ui/widgets/Common.hpp"
 
@@ -32,8 +31,6 @@ public:
     bool save_changes() override;
 
 private:
-    enum Sort { ByTitle, ByFile, ByArtists, ByDbAdded, ByDbUpdated, ByFileModified, ByFileCreated };
-
     void rebuild_tracks();
     void rebuild_pool();
     void insert(int64_t id, size_t at);
@@ -41,8 +38,6 @@ private:
     void move(size_t from, size_t to);
     void set_cover(const std::string& path);
     void tracks_changed();
-    int compare(int64_t a, int64_t b);
-    std::pair<int64_t, int64_t> file_times(int64_t id);  // modified, created
 
     std::string key_;
     std::string original_;  // "" — a new playlist
@@ -57,10 +52,9 @@ private:
     Gtk::ListBox tracks_list_, pool_list_;
     Gtk::ScrolledWindow tracks_scroll_, pool_scroll_;
     Gtk::SearchEntry search_;
-    Gtk::DropDown* sort_ = nullptr;
+    TrackSort sort_;
     Gtk::ToggleButton desc_;
     Gtk::CheckButton hide_added_;
-    std::unordered_map<int64_t, std::pair<int64_t, int64_t>> times_;
 };
 
 }  // namespace dp::ui

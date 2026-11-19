@@ -165,7 +165,7 @@ void SongTab::build_view() {
 
     auto* play = Gtk::make_managed<Gtk::Button>(tr("action.play"));
     play->add_css_class("suggested-action");
-    play->signal_clicked().connect([this] { Player::get().play_ids(track_.display_title(), {id_}, 0); });
+    play->signal_clicked().connect([this] { Player::get().play_queue(track_.display_title(), {{id_, {}}}, 0); });
     actions_.append(*play);
     auto* next = Gtk::make_managed<Gtk::Button>(tr("action.play_next"));
     next->signal_clicked().connect([this] { Player::get().play_next({id_, {}}); });

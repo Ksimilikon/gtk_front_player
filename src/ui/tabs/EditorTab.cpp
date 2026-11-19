@@ -1,8 +1,5 @@
 #include "ui/tabs/EditorTab.hpp"
 
-#include <fcntl.h>
-#include <sys/stat.h>
-
 #include <gtkmm/adjustment.h>
 #include <gtkmm/button.h>
 
@@ -141,11 +138,7 @@ EditorTab::EditorTab(std::string name) : key_(key_for(name)), original_(std::mov
     search_.set_placeholder_text(tr("playlist.search"));
     search_.set_hexpand(true);
     tools->append(search_);
-    sort_ = Gtk::make_managed<Gtk::DropDown>(std::vector<Glib::ustring>{
-        tr("sort.title"), tr("sort.file"), tr("sort.artists"), tr("sort.db_added"), tr("sort.db_updated"),
-        tr("sort.file_modified"), tr("sort.file_created")});
-    sort_->set_tooltip_text(tr("sort.tooltip"));
-    tools->append(*sort_);
+    tools->append(sort_);
     desc_.set_icon_name("view-sort-descending-symbolic");
     desc_.set_tooltip_text(tr("sort.descending"));
     tools->append(desc_);
@@ -176,17 +169,17 @@ EditorTab::EditorTab(std::string name) : key_(key_for(name)), original_(std::mov
         auto* ra = dynamic_cast<TrackRow*>(a);
         auto* rb = dynamic_cast<TrackRow*>(b);
         if (!ra || !rb) return 0;
-        const int c = compare(ra->track_id(), rb->track_id());
+        const int c = sort_.compare(ra->track_id(), rb->track_id());
         return desc_.get_active() ? -c : c;
     });
     search_.signal_search_changed().connect([this] { pool_list_.invalidate_filter(); });
     hide_added_.signal_toggled().connect([this] { pool_list_.invalidate_filter(); });
     auto resort = [this] {
-        sort_note_.set_visible(sort_->get_selected() == ByDbUpdated);
+        sort_note_.set_visible(sort_.uses_added_date());
         sort_note_.set_text(tr("sort.db_updated_note"));
         pool_list_.invalidate_sort();
     };
-    sort_->property_selected().signal_changed().connect(resort);
+    sort_.property_selected().signal_changed().connect(resort);
     desc_.signal_toggled().connect(resort);
     pool_scroll_.set_child(pool_list_);
     pool_scroll_.set_vexpand(true);
@@ -285,7 +278,7 @@ void EditorTab::rebuild_tracks() {
 }
 
 void EditorTab::rebuild_pool() {
-    times_.clear();
+    sort_.clear_cache();
     while (auto* c = pool_list_.get_first_child()) pool_list_.remove(*c);
     for (const auto& t : Library::get().tracks()) {
         auto* row = Gtk::make_managed<TrackRow>(t, 0, false);
@@ -303,45 +296,6 @@ void EditorTab::rebuild_pool() {
         drag_source(*row, [id] { return "track:" + std::to_string(id); });
         pool_list_.append(*row);
     }
-}
-
-std::pair<int64_t, int64_t> EditorTab::file_times(int64_t id) {
-    if (auto it = times_.find(id); it != times_.end()) return it->second;
-    std::pair<int64_t, int64_t> out{0, 0};
-    if (const auto* t = Library::get().track(id); t && !t->path.empty()) {
-        struct statx sx{};
-        if (statx(AT_FDCWD, t->path.c_str(), 0, STATX_MTIME | STATX_BTIME | STATX_CTIME, &sx) == 0) {
-            out.first = sx.stx_mtime.tv_sec;
-            // the birth time when the filesystem keeps it, else the change time.
-            out.second = (sx.stx_mask & STATX_BTIME) ? sx.stx_btime.tv_sec : sx.stx_ctime.tv_sec;
-        }
-    }
-    times_[id] = out;
-    return out;
-}
-
-int EditorTab::compare(int64_t a, int64_t b) {
-    const auto* ta = Library::get().track(a);
-    const auto* tb = Library::get().track(b);
-    if (!ta || !tb) return 0;
-    auto cmp_str = [](const std::string& x, const std::string& y) {
-        return g_utf8_collate(x.c_str(), y.c_str());
-    };
-    auto cmp_num = [](int64_t x, int64_t y) { return x < y ? -1 : x > y ? 1 : 0; };
-    switch (static_cast<Sort>(sort_->get_selected())) {
-        case ByTitle: return cmp_str(ta->display_title(), tb->display_title());
-        case ByFile:
-            return cmp_str(std::filesystem::path(ta->path).filename().string(),
-                           std::filesystem::path(tb->path).filename().string());
-        case ByArtists: return cmp_str(ta->artists_text(), tb->artists_text());
-        // the core doesn't expose the db dates yet: the id grows with every
-        // added song, so it orders by "added to the library".
-        case ByDbAdded:
-        case ByDbUpdated: return cmp_num(a, b);
-        case ByFileModified: return cmp_num(file_times(a).first, file_times(b).first);
-        case ByFileCreated: return cmp_num(file_times(a).second, file_times(b).second);
-    }
-    return 0;
 }
 
 bool EditorTab::save_changes() {

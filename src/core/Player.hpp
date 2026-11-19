@@ -44,7 +44,7 @@ public:
 
     /// plays `items` as the queue `name` from `start`. `focus` — the UI
     /// switches to the queue tab (not for a preview).
-    void play_queue(const std::string& name, std::vector<QueueItem> items, size_t start, bool focus = true);
+    void play_queue(const std::string& name, std::vector<QueueItem> items, size_t start, bool focus = true, bool playlist = false);
     void play_ids(const std::string& name, const std::vector<int64_t>& ids, size_t start);
     /// a file (a library track if the path is known); a queue of one.
     void play_path(const std::string& path);
@@ -73,6 +73,9 @@ public:
 
     void set_repeat_one(bool on);
     void set_shuffle(bool on);
+    void set_repeat_playlist(bool on);
+    bool repeat_playlist() const;
+    bool looping_playlist() const { return playlist_ && repeat_playlist(); }
     bool repeat_one() const { return repeat_one_; }
     bool shuffle() const { return shuffle_; }
 
@@ -117,6 +120,7 @@ private:
     size_t index_ = 0;
     uint64_t next_key_ = 1;
     std::string queue_name_;
+    bool playlist_ = false;
     bool repeat_one_ = false;
     bool shuffle_ = false;
     double volume_ = 1.0;

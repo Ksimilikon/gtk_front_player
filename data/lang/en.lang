@@ -518,3 +518,17 @@ font.pixel = Pixel (Terminus, like a tty)
 font.system = System
 hotkey.reindex = Re-index the library (playlists tab)
 about.license_font = Pixel font Terminus (TTF) — SIL Open Font License 1.1
+
+page.orphans = Songs without a playlist
+settings.repeat_playlist = Repeat the playlist after the last song
+settings.close_played_playlist = Close the playlist tab when playback starts
+orphans.unmarked = Unmarked
+orphans.marked = Marked to keep
+orphans.all = All songs without a playlist
+orphans.keep_mark = Kept
+orphans.mark = Mark to keep
+orphans.unmark = Remove keep mark
+orphans.delete_shown = Delete shown songs
+orphans.delete_one = Delete from device and library
+orphans.confirm_one = Delete the file {0} from the device and remove its library entry?
+orphans.confirm_many = Delete all shown songs ({0}) from the device and library?

@@ -39,7 +39,7 @@ PlaylistTab::PlaylistTab(std::string name) : name_(std::move(name)) {
     play->add_css_class("suggested-action");
     play->signal_clicked().connect([this] {
         Player::get().set_shuffle(false);
-        Player::get().play_ids(title(), ids(), 0);
+        nav().play_playlist(name_, ids(), 0);
     });
     actions->append(*play);
     auto* shuffle = Gtk::make_managed<Gtk::Button>(tr("action.shuffle_play"));
@@ -47,7 +47,7 @@ PlaylistTab::PlaylistTab(std::string name) : name_(std::move(name)) {
         const auto v = ids();
         if (v.empty()) return;
         Player::get().set_shuffle(true);
-        Player::get().play_ids(title(), v, static_cast<size_t>(g_random_int_range(0, static_cast<int>(v.size()))));
+        nav().play_playlist(name_, v, static_cast<size_t>(g_random_int_range(0, static_cast<int>(v.size()))));
     });
     actions->append(*shuffle);
     auto* queue = Gtk::make_managed<Gtk::Button>(tr("action.to_queue"));
@@ -81,7 +81,7 @@ PlaylistTab::PlaylistTab(std::string name) : name_(std::move(name)) {
     list_.set_selection_mode(Gtk::SelectionMode::NONE);
     list_.signal_row_activated().connect([this](Gtk::ListBoxRow* row) {
         if (auto* r = dynamic_cast<TrackRow*>(row))
-            Player::get().play_ids(title(), ids(), static_cast<size_t>(r->number() - 1));
+            nav().play_playlist(name_, ids(), static_cast<size_t>(r->number() - 1));
     });
     list_.set_filter_func([this](Gtk::ListBoxRow* row) {
         auto* r = dynamic_cast<TrackRow*>(row);
@@ -171,7 +171,7 @@ void PlaylistTab::rebuild() {
 
 std::vector<MenuItem> PlaylistTab::track_menu(Gtk::Widget& row, int64_t id, size_t index) {
     std::vector<MenuItem> items;
-    items.push_back({tr("action.play"), [this, index] { Player::get().play_ids(title(), ids(), index); }});
+    items.push_back({tr("action.play"), [this, index] { nav().play_playlist(name_, ids(), index); }});
     append_song_items(items, row, id);
     if (!name_.empty()) {
         items.push_back({tr("action.remove_from_playlist"),

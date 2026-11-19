@@ -17,6 +17,7 @@
 
 #include "app/Application.hpp"
 #include "core/Core.hpp"
+#include "core/Player.hpp"
 #include "core/Library.hpp"
 #include "i18n/I18n.hpp"
 #include "theme/Theme.hpp"
@@ -187,6 +188,21 @@ SettingsTab::SettingsTab() {
 
     // ── playback ──
     page->append(*section_title(tr("settings.playback")));
+    auto* repeat = Gtk::make_managed<Gtk::Switch>();
+    repeat->set_active(Player::get().repeat_playlist());
+    repeat->property_active().signal_changed().connect([repeat] {
+        if (repeat->get_active() != Player::get().repeat_playlist())
+            Player::get().set_repeat_playlist(repeat->get_active());
+    });
+    Player::get().signal_modes_changed().connect(sigc::track_obj(
+        [repeat] { repeat->set_active(Player::get().repeat_playlist()); }, *repeat));
+    page->append(*setting_row(tr("settings.repeat_playlist"), "", *repeat));
+    auto* close = Gtk::make_managed<Gtk::Switch>();
+    close->set_active(Settings::get().boolean(key::close_played_playlist, true));
+    close->property_active().signal_changed().connect([close] {
+        Settings::get().set_bool(key::close_played_playlist, close->get_active());
+    });
+    page->append(*setting_row(tr("settings.close_played_playlist"), "", *close));
     {
         devices_ = Gtk::make_managed<Gtk::DropDown>(std::vector<Glib::ustring>{});
         devices_->set_size_request(260, -1);

@@ -24,6 +24,7 @@ public:
     // Nav
     void open_playlists() override;
     void open_playlist(const std::string& name) override;
+    void play_playlist(const std::string& name, const std::vector<int64_t>& ids, size_t start) override;
     void open_editor(const std::string& name) override;
     void open_song(int64_t id) override;
     void open_current_song() override;

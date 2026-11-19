@@ -110,7 +110,7 @@ void PlaylistsTab::rebuild() {
                 const auto* p = Library::get().playlist(name);
                 return p ? p->tracks : std::vector<int64_t>{};
             };
-            items.push_back({tr("action.play"), [ids, display] { Player::get().play_ids(display, ids(), 0); }});
+            items.push_back({tr("action.play"), [ids, name] { nav().play_playlist(name, ids(), 0); }});
             items.push_back({tr("action.open"), [name] { nav().open_playlist(name); }});
             append_queue_items(items, ids, display);
             if (!name.empty()) {

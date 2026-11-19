@@ -6,6 +6,7 @@
 #include "core/Library.hpp"
 #include "core/Player.hpp"
 #include "i18n/I18n.hpp"
+#include "i18n/I18n.hpp"
 #include "ui/Hotkeys.hpp"
 #include "ui/tabs/AboutTab.hpp"
 #include "ui/tabs/EditorTab.hpp"
@@ -14,6 +15,7 @@
 #include "ui/tabs/LogsTab.hpp"
 #include "ui/tabs/ModPageTab.hpp"
 #include "ui/tabs/ModsTab.hpp"
+#include "ui/tabs/OrphansTab.hpp"
 #include "ui/tabs/PlaylistTab.hpp"
 #include "ui/tabs/PlaylistsTab.hpp"
 #include "ui/tabs/QueueTab.hpp"
@@ -165,6 +167,14 @@ void MainWindow::open_playlist(const std::string& name) {
     tabs_.open(PlaylistTab::key_for(name), [name] { return std::make_unique<PlaylistTab>(name); });
 }
 
+void MainWindow::play_playlist(const std::string& name, const std::vector<int64_t>& ids, size_t start) {
+    if (ids.empty()) return;
+    Player::get().play_ids(name.empty() ? tr("playlists.all_songs") : name, ids, start);
+    if (!name.empty() && Player::get().state().has_track && Settings::get().boolean(key::close_played_playlist, true)) {
+        if (auto* tab = tabs_.find(PlaylistTab::key_for(name))) tab->signal_close_request.emit();
+    }
+}
+
 void MainWindow::open_editor(const std::string& name) {
     tabs_.open(EditorTab::key_for(name), [name] { return std::make_unique<EditorTab>(name); });
 }
@@ -183,6 +193,7 @@ void MainWindow::open_current_song() {
 void MainWindow::open_page(const std::string& page) {
     std::function<std::unique_ptr<Tab>()> make;
     if (page == "settings") make = [] { return std::make_unique<SettingsTab>(); };
+    else if (page == "orphans") make = [] { return std::make_unique<OrphansTab>(); };
     else if (page == "sync") make = [] { return std::make_unique<SyncTab>(); };
     else if (page == "import") make = [] { return std::make_unique<ImportTab>(); };
     else if (page == "export") make = [] { return std::make_unique<ExportTab>(); };

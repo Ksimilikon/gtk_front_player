@@ -86,6 +86,8 @@ sources = files(
   'src/ui/widgets/PlayerPanel.cpp',
   'src/ui/widgets/Controls.cpp',
   'src/ui/widgets/Common.cpp',
+  'src/ui/widgets/TrackSort.cpp',
+  'src/ui/tabs/OrphansTab.cpp',
   'src/ui/widgets/TrackRow.cpp',
   'src/ui/tabs/PlaylistsTab.cpp',
   'src/ui/tabs/PlaylistTab.cpp',

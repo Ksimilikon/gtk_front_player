@@ -88,6 +88,7 @@ void Mpris::start(std::function<void()> raise, std::function<void()> quit) {
             emit_changed(kPlayer, {"PlaybackStatus"});
         }
     });
+    p.signal_queue_changed().connect([this] { emit_changed(kPlayer, {"LoopStatus"}); });
     p.signal_modes_changed().connect([this] { emit_changed(kPlayer, {"LoopStatus", "Shuffle"}); });
     p.signal_volume_changed().connect([this] { emit_changed(kPlayer, {"Volume"}); });
     p.signal_seeked().connect([this](uint64_t sec) {
@@ -179,7 +180,10 @@ bool Mpris::on_set(const Glib::RefPtr<Gio::DBus::Connection>&, const Glib::ustri
     } else if (prop == "Shuffle") {
         p.set_shuffle(Glib::VariantBase::cast_dynamic<Glib::Variant<bool>>(value).get());
     } else if (prop == "LoopStatus") {
-        p.set_repeat_one(Glib::VariantBase::cast_dynamic<Glib::Variant<Glib::ustring>>(value).get() == "Track");
+        const auto mode = Glib::VariantBase::cast_dynamic<Glib::Variant<Glib::ustring>>(value).get();
+        if (mode != "Track" && mode != "None" && mode != "Playlist") return false;
+        if (mode != "Track") p.set_repeat_playlist(mode == "Playlist");
+        p.set_repeat_one(mode == "Track");
     }
     return true;
 }
@@ -200,7 +204,7 @@ Glib::VariantBase Mpris::property(const Glib::ustring& iface, const Glib::ustrin
         return {};
     }
     if (prop == "PlaybackStatus") return S::create(!s.has_track ? "Stopped" : s.playing ? "Playing" : "Paused");
-    if (prop == "LoopStatus") return S::create(p.repeat_one() ? "Track" : "None");
+    if (prop == "LoopStatus") return S::create(p.repeat_one() ? "Track" : p.looping_playlist() ? "Playlist" : "None");
     if (prop == "Rate" || prop == "MinimumRate" || prop == "MaximumRate") return Glib::Variant<double>::create(1.0);
     if (prop == "Shuffle") return B::create(p.shuffle());
     if (prop == "Metadata") return metadata();

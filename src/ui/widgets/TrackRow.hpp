@@ -23,6 +23,7 @@ public:
     /// a box at the end of the row for buttons.
     Gtk::Box& trailing() { return trailing_; }
     /// the text the search matches against.
+    static std::string search_text_for(const core::Track& t);
     const std::string& search_text() const { return search_; }
 
 private:

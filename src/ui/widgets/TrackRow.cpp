@@ -64,7 +64,11 @@ TrackRow::TrackRow(const core::Track& t, int number, bool show_album) : id_(t.id
     box_.append(trailing_);
     set_child(box_);
 
-    search_ = t.display_title() + " " + fmt::join(t.artists, " ") + " " + t.album + " " + t.label;
+    search_ = search_text_for(t);
+}
+
+std::string TrackRow::search_text_for(const core::Track& t) {
+    return t.display_title() + " " + fmt::join(t.artists, " ") + " " + t.album + " " + t.label;
 }
 
 void TrackRow::set_playing(bool playing) {
