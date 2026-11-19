@@ -39,7 +39,7 @@ install -d "$doc"
 # runtime dependencies from the libraries the binaries link (the core is
 # private: its directory is passed as a search path).
 mkdir -p "$work/shl/debian"
-printf 'Source: dream-player-gtk\n\nPackage: dream-player-gtk\n' > "$work/shl/debian/control"
+printf 'Source: dream-player-gtk\n\nPackage: dream-player-gtk\nArchitecture: any\n' > "$work/shl/debian/control"
 depends="$(cd "$work/shl" && dpkg-shlibdeps -O --ignore-missing-info -l"$libdir" \
     "$root/usr/bin/dream_player_gtk" "$libdir/libdream_player.so" | sed -n 's/^shlibs:Depends=//p')"
 
